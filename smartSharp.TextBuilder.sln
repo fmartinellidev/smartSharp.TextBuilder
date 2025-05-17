@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.36105.23 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "smartSharp.TextBuilder", "smartSharp.TextBuilder\smartSharp.TextBuilder.csproj", "{687AD5A9-1793-4995-9D73-A11A3AD1F1AB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestUnits.TextBuilder", "TestUnits.TextBuilder\TestUnits.TextBuilder.csproj", "{6BF5DDEC-EE55-4758-A5CE-4A6946198250}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{687AD5A9-1793-4995-9D73-A11A3AD1F1AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{687AD5A9-1793-4995-9D73-A11A3AD1F1AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{687AD5A9-1793-4995-9D73-A11A3AD1F1AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{687AD5A9-1793-4995-9D73-A11A3AD1F1AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BF5DDEC-EE55-4758-A5CE-4A6946198250}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BF5DDEC-EE55-4758-A5CE-4A6946198250}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BF5DDEC-EE55-4758-A5CE-4A6946198250}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BF5DDEC-EE55-4758-A5CE-4A6946198250}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C5734C61-9D6E-4BA9-B35C-C69C41E0F274}
+	EndGlobalSection
+EndGlobal
