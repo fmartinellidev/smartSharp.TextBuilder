@@ -1,4 +1,8 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
+using System.ComponentModel.Design;
+using System.Net;
+using System.Reflection;
 using System.Text;
 
 namespace SmartSharp.TextBuilder
@@ -9,810 +13,112 @@ namespace SmartSharp.TextBuilder
     public enum TextOptions
     {
         /// <summary>
-        /// When use "*" pattern, consider end of word. The finder occurs is stoped in end of word.
-        /// <para>Ex: "The name is John Doe Silva", patern is "jo*", return only "John". Without parameter, returns "John Doe Silva"</para>
-        /// </summary>
-        PatternByWord = 1,
-
-        /// <summary>
         /// <para>In match not returns duplicate occurs.</para>
         /// <para>Only removes first occurs of duplicate text.</para>
         /// </summary>
-        Distinct = 2,
+        Distinct = 10,
 
         /// <summary>
         /// Don't ignore content in single quotes('').
         /// <para>Return if find text in single quotes</para>
         /// </summary>
-        IgnoreInSingleQuotes = 3,
+        IgnoreInSingleQuotes = 20,
 
         /// <summary>
         /// Return snippets without open and close tags.
         /// <para>Ex: "Extract a snippet of ->text<-", result="text"</para>
         /// </summary>
-        RemoveOpenCloseTags = 4,
-
-        /// <summary>
-        /// <para>Accept cross matches occurrences to return.</para>
-        /// <para>After match an occurrence, will start a new search starting second char of it, so can find a new occurs that 
-        /// can  started inside previous occurs. By default, the new searches start after previeous occur end. 
-        /// </summary>
-        CrossMatches = 5,
-
+        RemoveOpenCloseTags = 30,
+                
         /// <summary>
         /// The list of matches return sorted by position in text
         /// </summary>
-        OrderByPosition = 6,
+        OrderByPosition = 40,
 
         /// <summary>
         /// The list of matches return sorted by word alphabetical order
         /// </summary>
-        OrderByWord = 7,
+        OrderByWord = 50,
 
         /// <summary>
-        /// Return occurrence only with parts building in pattern(wildcard).
+        /// Return occurrence with only parts building by pattern(wildcard). Remove litteral text.
         /// <para>Return occurrences only pattern parts</para>
         /// </summary>
-        OnlyCharsInPattern = 8
+        OnlyCharsInPattern = 60,
+
+        /// <summary>
+        /// <para>Init occur with start word symbol.</para>
+        /// </summary>
+        ByStartWord = 70,
+
+        /// <summary>
+        /// <para>End occur with end word symbol.</para>
+        /// </summary>
+        ByEndWord = 80
     }
 
     #endregion
-
-    #region ▼ PatternBuffer
-
-    ref struct PatternBuffer
-    {
-        #region ▼ Properties
-
-        public int TextCount = 0;
-        public int WildcardCount = 0;
-
-        #region • Patterns
-
-        private List<char[]> patterns = new();
-
-        #endregion
-
-        #region • PatternSymbol
-        private char PatternSymbol = '*';
-        #endregion
-
-        #region • Done
-        public bool Done
-        {
-            get
-            {
-                if (notCaptured == 0) { return true; }
-                else { return false; }
-            }
-        }
-        #endregion
-
-        #region • CaptureInStart
-        private bool captureInStart = false;
-        public bool CaptureInStart
-        { get { return captureInStart; } }
-
-        #endregion
-
-        #region • InCapture
-        private bool inCapture = false;
-        public bool InCapture
-        { get { return inCapture; } }
-
-        #endregion
-
-        #region • CaptureInEnd
-        private bool captureInEnd = false;
-        public bool CaptureInEnd
-        { get { return captureInEnd; } }
-
-        #endregion
-
-        #region • Captured
-        public void Captured()
-        {
-            if (notCaptured == 0) { return; }
-            notCaptured--;
-            index++;
-
-            if (!Done) { inCapture = true; }
-            else { inCapture = false; }
-        }
-        #endregion
-
-        #region • NotCaptured
-        public int NotCaptured { get { return notCaptured; } }
-        private int notCaptured = 0;
-        #endregion
-
-        #region • Index
-
-        public int index = 0;
-
-        #endregion
-
-        #region ► IsEnd
-        public bool IsEnd
-        {
-            get
-            {
-                return index >= patterns.Count() - 1;
-            }
-        }
-        #endregion
-
-        #region ► IsFirst
-        public bool IsFirst
-        {
-            get { return index == 0; }
-        }
-        #endregion
-
-        #region ► Reset
-        public void Reset() { index = 0; notCaptured = patterns.Count(); }
-        #endregion
-
-        #region ► Count
-        public int Count => patterns.Count();
-
-        #endregion
-
-        #region ► Text
-
-        public ReadOnlySpan<char> Text
-        {
-            get
-            {
-                if (index >= patterns.Count) { return ""; }
-                return patterns[index];
-
-                //if (patterns[index][0] ==PatternSymbol)
-                //{ 
-                //    if (index < patterns.Count()) { return this[index + 1]; }
-                //    else {  return ""; }
-                //}
-                //else { return this[index]; }
-            }
-        }
-
-        #endregion
-
-        #region ► Length
-
-        public int Length => Text.Length;
-
-        #endregion
-
-        #endregion
-
-        #region ► Initialize
-
-        public PatternBuffer(string pattern)
-        {
-            if (pattern != null)
-            {
-                if (pattern.Length > 0)
-                { Split(pattern); index = 0; }
-                else
-                { throw new ArgumentException("TextToSplit is empty!"); }
-            }
-            else
-            { throw new ArgumentException("textToSplit is null!"); }
-
-        }
-
-        public PatternBuffer(ReadOnlySpan<char> pattern)
-        {
-            if (!pattern.IsEmpty)
-            {
-                if (pattern.Length > 0)
-                { Split(pattern); index = 0; }
-                else
-                { throw new ArgumentException("TextToSplit is empty!"); }
-            }
-            else
-            { throw new ArgumentException("textToSplit is null!"); }
-
-        }
-
-        public PatternBuffer(string pattern, char patternSymbol)
-        {
-            if (pattern != null)
-            {
-                if (pattern.Length > 0)
-                { Split(pattern); PatternSymbol = patternSymbol; index = 0; }
-                else
-                { throw new ArgumentException("TextToSplit is empty!"); }
-            }
-            else
-            { throw new ArgumentException("textToSplit is null!"); }
-        }
-
-        #endregion
-
-        #region ► Controller
-
-        public string this[int _index]
-        {
-            get
-            {
-                if (_index < 0 || _index >= Count)
-                    throw new IndexOutOfRangeException();
-                return new string(patterns[_index]);
-            }
-        }
-
-        #endregion
-
-        #region ▼ Methods
-
-        #region ► SplitWords
-
-        private void Split(ReadOnlySpan<char> pattern)
-        {
-            int _startIndex = 0;
-            List<ReadOnlyMemory<char>> _tempMatches = new();
-            int length = 1;
-
-            if (pattern[0] == PatternSymbol)
-            { _startIndex++; captureInStart = true; inCapture = true; }
-
-            for (int i = _startIndex; i < pattern.Length; i++)
-            {
-                if (pattern[i] == PatternSymbol || i == pattern.Length - 1)
-                {
-                    if (pattern[_startIndex + length - 1] == PatternSymbol) { length--; }
-                    char[] literal = pattern.Slice(_startIndex, length).ToArray();
-                    patterns.Add(literal);
-                    notCaptured++;
-
-                    _startIndex = i + 1;
-                    length = 0;
-                }
-
-                length++;
-            }
-
-            if (pattern[pattern.Length - 1] == PatternSymbol)
-            { captureInEnd = true; }
-        }
-
-        #endregion
-
-        #endregion
-    }
-
-    #endregion
-
-    #region ▼ MatchesBuffer
 
     #region ▼ StringAndPosition
 
     public class StringAndPosition
     {
         public int Position { get; set; }
-        public char[] Text { get; set; }
+        public char[] Chars { get; set; }
+
+        public string Text { get { return new string(Chars); } }
+        public bool Empty { get { return Chars.Length == 0; } }
 
         public StringAndPosition(ReadOnlySpan<char> text, int position)
         {
             Position = position;
-            Text = text.ToArray();
+            Chars = text.ToArray();
         }
 
         public StringAndPosition()
         {
+            Position = -1;
+            Chars = new char[0];
         }
 
         public void Set(ReadOnlySpan<char> text, int position)
         {
             Position = position;
-            Text = text.ToArray();
+            Chars = text.ToArray();
         }
     }
 
     #endregion
 
-    #region ▼ StringOrPattern
+    #region ▼ WordAndPosition
 
-    public class StringOrPattern
+    public ref struct WordAndPosition
     {
-        public bool IsPattern { get; set; }
-        public char[] Text { get; set; }
+        public bool Empty { get { return Word.Length == 0; } }
+        public int Position { get; set; }
+        public ReadOnlySpan<char> Word { get; set; }
 
-        public StringOrPattern(ReadOnlySpan<char> text, bool isPattern)
+        public WordAndPosition(ReadOnlySpan<char> text, int position)
         {
-            IsPattern = isPattern;
-            Text = text.ToArray();
+            Position = position;
+            Word = text;
         }
 
-        public StringOrPattern()
+        public WordAndPosition()
         {
+            Position = -1;
+            Word = new char[0];
+        }
+
+        public void Set(ReadOnlySpan<char> text, int position)
+        {
+            Position = position;
+            Word = text;
         }
     }
 
     #endregion
-
-    #region ▼ MatchEntry
-
-    public abstract class MatchEntry
-    {
-        #region • Count
-        public abstract int Count { get; }
-        #endregion
-
-        #region • LengthTotal
-        public virtual int LengthTotal { get; }
-        #endregion
-
-        #region • Index
-        public virtual int Index { get; set; }
-        #endregion
-
-        #region • Text
-        public abstract string Text { get; }
-        public virtual string GetText(int index)
-        { return ""; }
-        #endregion
-
-        #region • Position
-        public virtual int Position { get; }
-        public virtual int GetPosition(int index)
-        { throw new InvalidOperationException("Position is not available to 'ToMatchString'!"); }
-        #endregion
-
-        #region • IsPattern
-        public virtual bool IsPattern { get; }
-        public virtual bool GetIsPattern(int index)
-        { throw new InvalidOperationException("The IsPattern is available only to 'ToMatchStrings'!"); }
-        #endregion
-
-        #region • This
-        public virtual string this[int index]
-        { get { throw new InvalidOperationException("This property is available only to 'ToMatchStrings' collection!"); } }
-        #endregion
-
-        #region • StringAndPosition
-        public virtual StringAndPosition Matched { get; }
-        public virtual StringAndPosition GetMatched(int index)
-        { throw new InvalidOperationException("The Matched method is not available to 'ToMatchStrings' collection!"); }
-        #endregion
-
-        #region • Add
-        public virtual void Add(ReadOnlySpan<char> text, int position)
-        { throw new InvalidOperationException("The Add method is not available to MatchString collection!"); }
-        #endregion
-
-        #region • Set
-        public virtual void Set(ReadOnlySpan<char> text, int position)
-        { throw new InvalidOperationException("Set method only avaliable to MatchString collection!"); }
-        #endregion
-    }
-
-    #region + MatchString
-    public class MatchString : MatchEntry
-    {
-        #region ▼ Properties
-
-        #region • Data
-
-        private StringAndPosition match;
-
-        #endregion
-
-        #region • Count
-
-        public override int Count
-        {
-            get
-            {
-                if (match != null)
-                { return 1; }
-                return 0;
-            }
-        }
-
-        #endregion
-
-        #region • Text
-        public override string Text
-        {
-            get { return new string(match.Text); }
-        }
-
-        #endregion
-
-        #region • Position
-        public override int Position
-        {
-            get
-            {
-                if (match != null)
-                { return match.Position; }
-                return -1;
-            }
-        }
-
-        #endregion
-
-        #region • Matched
-        public override StringAndPosition Matched
-        {
-            get
-            {
-                if (match != null)
-                { return match; }
-                return null;
-            }
-        }
-
-        #endregion
-
-        #endregion
-
-        #region ▼ Initialize
-
-        public MatchString()
-        {
-            match = new StringAndPosition("", -1);
-        }
-
-        public MatchString(string text, int position)
-        {
-            match = new StringAndPosition((string)text, position);
-        }
-
-        #endregion
-
-        #region ▼ Methods
-
-        public override void Set(ReadOnlySpan<char> text, int position)
-        {
-            match.Text = text.ToArray();
-            match.Position = position;
-        }
-
-        #endregion
-    }
-
-    #endregion
-
-    #region + MatchesList
-    public class MatchesList : MatchEntry
-    {
-        #region ▼ Properties
-
-        #region • Data
-
-        private List<StringAndPosition> matches;
-
-        #endregion
-
-        #region • Count
-
-        public override int Count
-        {
-            get
-            {
-                if (matches != null) { return matches.Count; }
-                return -1;
-            }
-        }
-
-        #endregion
-
-        #region • LengthTotal
-
-        private int lengthTotal = 0;
-        public override int LengthTotal
-        { get { return lengthTotal; } }
-
-        #endregion
-
-        #region • OrderByPosition
-
-        private bool orderByPosition { get; set; }
-
-        #endregion
-
-        #region • OrderByWord
-
-        private bool orderByWord { get; set; }
-
-        #endregion
-
-        #region • Index
-
-        public override int Index { get; set; }
-
-        #endregion
-
-        #region • Text
-        public override string Text
-        {
-            get
-            {
-                if (matches == null)
-                { return ""; }
-
-                return new string(matches[Index].Text);
-            }
-        }
-        #endregion
-
-        #region • Position
-        public override int Position
-        {
-            get
-            {
-                if (matches == null)
-                { return -1; }
-
-                return matches[Index].Position;
-            }
-        }
-        #endregion
-
-        #region • Matched
-
-        public override StringAndPosition Matched
-        { get { return matches[Index]; } }
-
-        #endregion
-
-        #endregion
-
-        #region ▼ Initialize
-
-        public MatchesList()
-        {
-            orderByPosition = false;
-            orderByWord = false;
-            matches = new List<StringAndPosition>();
-        }
-
-        public MatchesList(TextOptions option)
-        {
-            if (option.HasFlag(TextOptions.OrderByPosition))
-            { orderByPosition = true; orderByWord = false; }
-            else if (option.HasFlag(TextOptions.OrderByWord))
-            { orderByWord = true; orderByPosition = false; }
-            else { orderByWord = false; orderByPosition = false; }
-            matches = new List<StringAndPosition>();
-        }
-
-        #endregion
-
-        #region ▼ Controller
-
-        public override string GetText(int index)
-        {
-            if (matches == null)
-            { return ""; }
-
-            return new string(matches[index].Text);
-        }
-
-        public override int GetPosition(int index)
-        {
-            if (matches == null)
-            { return -1; }
-
-            return matches[index].Position;
-        }
-
-        public override StringAndPosition GetMatched(int index)
-        { return matches[index]; }
-
-        #endregion
-
-        #region ▼ Methods
-
-        #region ► Add
-
-        public override void Add(ReadOnlySpan<char> text, int position)
-        {
-            #region ? Order by position
-
-            lengthTotal += text.Length;
-
-            if (matches.Count > 0 && orderByPosition)
-            {
-                if (matches[0].Position > position)
-                { matches.Insert(0, new StringAndPosition(text, position)); }
-            }
-
-            #endregion
-
-            #region ? Order by word
-
-            else if (matches.Count > 0 && orderByPosition)
-            {
-                if (matches[0].Text[0] > text[0])
-                { matches.Insert(0, new StringAndPosition(text, position)); }
-            }
-
-            #endregion
-
-            #region ! Add match without order
-
-            else
-            { matches.Add(new StringAndPosition(text, position)); }
-
-            #endregion
-        }
-
-        #endregion
-
-        #endregion
-    }
-
-    #endregion
-
-    #region + ToMatchStrings
-    public class ToMatchStrings : MatchEntry
-    {
-        #region ▼ Properties
-
-        #region • Data
-
-        private List<StringOrPattern> toMatches;
-
-        #endregion
-
-        #region • Count
-
-        public override int Count
-        {
-            get
-            {
-                if (toMatches != null) { return toMatches.Count; }
-                return 0;
-            }
-        }
-
-        #endregion
-
-        #region • LengthTotal
-
-        private int lengthTotal = 0;
-        public override int LengthTotal
-        { get { return lengthTotal; } }
-
-        #endregion
-
-        #region • Index
-
-        public override int Index { get; set; }
-
-        #endregion
-
-        #region • IsPattern
-
-        public override bool IsPattern
-        {
-            get
-            {
-                if (toMatches != null)
-                { return toMatches[Index].IsPattern; }
-
-                return false;
-            }
-        }
-
-        #endregion
-
-        #region • Text
-
-        public override string Text
-        {
-            get { return new string(toMatches[Index].Text); }
-        }
-
-        #endregion
-
-        #endregion
-
-        #region ▼ Initialize
-
-        public ToMatchStrings(string stringsToList)
-        {
-            toMatches = new List<StringOrPattern>(10);
-            Split(stringsToList + '|');
-        }
-
-        public ToMatchStrings(string stringsToList, char separador = '|')
-        {
-            toMatches = new List<StringOrPattern>(10);
-            Split(stringsToList + separador, separador);
-        }
-
-        #endregion
-
-        #region ▼ Controller
-        public override string this[int index]
-        {
-            get
-            {
-                if (toMatches == null) { return ""; }
-                return new string(toMatches[index].Text);
-            }
-        }
-
-        #endregion
-
-        #region ▼ Methods
-
-        #region ► GetText
-
-        public override string GetText(int index)
-        {
-            return new string(toMatches[index].Text);
-        }
-
-        #endregion
-
-        #region ► GetIsPattern
-
-        public override bool GetIsPattern(int index)
-        {
-            if (toMatches != null)
-            { return toMatches[index].IsPattern; }
-
-            return false;
-        }
-
-        #endregion
-
-        #region ► Add
-
-        public override void Add(ReadOnlySpan<char> text, int position)
-        {
-            bool isPattern = text.Contains('*');
-            toMatches.Add(new StringOrPattern(text.ToArray(), isPattern));
-        }
-
-        #endregion
-
-        #region ► SplitWords
-
-        private void Split(ReadOnlySpan<char> texts, char separador = '|')
-        {
-            int _startIndex = 0;
-            List<ReadOnlyMemory<char>> _tempMatches = new();
-            bool isPattern = false;
-            int length = 0;
-
-            for (int i = 0; i < texts.Length; i++)
-            {
-                if (texts[i] == '*' && !isPattern) isPattern = true;
-
-                if (texts[i] == separador)
-                {
-                    #region ? Separator in first char
-                    if (i == 0) { continue; }
-                    #endregion
-
-                    length = i - _startIndex;
-                    lengthTotal += length;
-                    toMatches.Add(new StringOrPattern(texts.Slice(_startIndex, length).ToArray(), isPattern));
-                    _startIndex = i + 1;
-                    isPattern = false;
-                }
-            }
-        }
-
-        #endregion
-
-        #endregion
-    }
-
-    #endregion
-
-    #endregion
-
-    #endregion
-
+        
     #region ▼ TextBuilder
 
     public class TextBuilder
@@ -825,16 +131,27 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
+        #region • Success
+
+        private bool success = false;
+        public bool Success
+        {
+            get { return success; }
+        }
+
+        #endregion
+
         #region ▼ Params
 
-        private bool ignoreApostrophes = false;
-        private bool byWord = false;
-        private bool distinct = false;
-        private bool crossMatches = false;
-        private bool removeTags = false;
-        private bool orderByPosition = false;
-        private bool orderByWord = false;
-        private bool onlyPatternParts = false;
+        private bool textOption { get; set; }
+        private bool ignoreApostrophes { get; set; }
+        private bool byStartWord { get; set; }
+        private bool byEndWord { get; set; }
+        private bool distinct { get; set; }
+        private bool removeTags { get; set; }
+        private bool orderByPosition { get; set; }
+        private bool orderByWord { get; set; }
+        private bool onlyPatternParts { get; set; }
 
         #endregion
 
@@ -865,7 +182,7 @@ namespace SmartSharp.TextBuilder
         }
 
         #endregion
-
+                
         #endregion
 
         #region ► Instance
@@ -873,10 +190,10 @@ namespace SmartSharp.TextBuilder
         private void setParams(string text)
         {
             sourceText = text.AsMemory();
+            byStartWord = false;
+            byEndWord = false;
             ignoreApostrophes = false;
-            byWord = false;
             distinct = false;
-            crossMatches = false;
             removeTags = false;
             startIndex = 0;
             orderByPosition = false;
@@ -909,9 +226,11 @@ namespace SmartSharp.TextBuilder
         /// <para>Use "|" to split various texts. Ex:"john|marie|Jack"</para></param>
         /// <param name="options">Parameters of the search in 'Options' internal class</param>
         /// <returns>Return string of first occurs without case sensitive.</returns>
-        public MatchEntry MatchFirst(string stringsToMatch, TextOptions option = default)
+        public StringAndPosition MatchFirst(string stringsToMatch, TextOptions option = default)
         {
-            return executeMatch(sourceText.Span, stringsToMatch, 0, 1, option);
+            setParams(option);
+            return matchPattern(sourceText.Span, stringsToMatch, 0);
+           //return executeMatch(sourceText.Span, stringsToMatch, 0, 1, option);
         }
 
         /// <summary>
@@ -921,77 +240,96 @@ namespace SmartSharp.TextBuilder
         /// <para>Use "|" to split various texts. Ex:"john|marie|Jack"</para></param>
         /// <param name="options">Parameters of the search in 'Options' internal class</param>
         /// <returns>Return string of first occurs without case sensitive.</returns>
-        private MatchEntry executeMatch(ReadOnlySpan<char> sourceText, string stringsToMatch, int startIndex, int count, TextOptions option)
-        {
-            if (stringsToMatch == "") { return default; }
+        //private MatchEntry executeMatch(ReadOnlySpan<char> sourceText, string stringsToMatch, int startIndex, int count, TextOptions option)
+        //{
+        //    if (stringsToMatch == "") { return default; }
 
-            #region + Params           
+        //    #region + Params           
 
-            setParams(option);
+        //    setParams(option);
 
-            #endregion
+        //    #endregion
 
-            #region + List words to matches
+        //    #region + List words to matches
 
-            MatchEntry listToMatch = new ToMatchStrings(stringsToMatch);
+        //    MatchEntry listToMatch = new ToMatchStrings(stringsToMatch);
 
-            #endregion
+        //    #endregion
 
-            #region + Matches collection
+        //    #region + Matches collection
 
-            MatchEntry occurs;
-            if (count == 1)
-            { occurs = new MatchString(); }
-            else { occurs = new MatchesList(); }
+        //    MatchEntry occurs;
+        //    if (count == 1)
+        //    { occurs = new MatchString(); }
+        //    else { occurs = new MatchesList(); }
 
-            #endregion      
+        //    #endregion      
 
-            for (int i = 0; i < listToMatch.Count; i++)
-            {
-                #region ? First simple match
+        //    for (int i = 0; i < listToMatch.Count; i++)
+        //    {
+        //        #region + First match
 
-                if (!listToMatch.GetIsPattern(i) && count == 1)// If this word not a pattern match
-                {
-                    StringAndPosition _occur = matchFirst(sourceText, listToMatch[i], startIndex, ignoreApostrophes);
-                    if (_occur == null) { return null; }
-                    if (_occur.Position < occurs.Position || occurs.Position == -1)
-                    { occurs.Set(_occur.Text, _occur.Position); }
-                }
-                
-                #endregion
+        //        if (count == 1)
+        //        {
+        //            if (!listToMatch.GetIsPattern(i))// If this word not a pattern match
+        //            {
+        //                #region ? Simple match
 
-                #region ? Pattern first match
-                else if (listToMatch.GetIsPattern(i) && count == 1)
-                {
-                    StringAndPosition _occur = matchFirstPattern(sourceText, listToMatch[i], startIndex,
-                                                                 ignoreApostrophes, byWord, onlyPatternParts);
-                    if (_occur == null) { return null; }
-                    if (_occur.Position < occurs.Position || occurs.Position == -1)
-                    { occurs.Set(_occur.Text, _occur.Position); }
-                }
-                #endregion
+        //                StringAndPosition _occur = matchFirst(sourceText, listToMatch[i], startIndex, ignoreApostrophes);
+        //                if (_occur == null) { return null; }
+        //                if (_occur.Position < occurs.Position || occurs.Position == -1)
+        //                { occurs.Set(_occur.Text, _occur.Position); }
 
-                #region ? Simple matches
-                else if (!listToMatch.GetIsPattern(i) && count > 1)
-                {
-                    match(sourceText, listToMatch[i], ref occurs, startIndex, count,
-                           ignoreApostrophes, byWord, distinct, crossMatches, removeTags);
-                }
-                #endregion
+        //                #endregion
+        //            }
+        //            else
+        //            {
+        //                #region ! Pattern first match
 
-                #region ! Pattern matches
-                else
-                {
+        //                int posMatch = 0;
+        //                ReadOnlySpan<char> patterns = stringsToMatch.AsSpan();
+        //                StringAndPosition _occur = matchPattern(sourceText, patterns, startIndex,
+        //                                                              ignoreApostrophes);
 
-                }
-                #endregion
-            }
+        //                if (_occur == null) { success = false; return null; } else { success = true; }
+        //                if (_occur.Position < occurs.Position || occurs.Position == -1)
+        //                { occurs.Set(_occur.Text, _occur.Position); }
 
-            if (occurs.Count == 0) { return default; }
-            return occurs;
-        }
 
-        #endregion
+        //                #endregion
+        //            }
+        //        }
+        //        #endregion
+
+        //        #region + More than one match
+
+        //        else
+        //        {
+        //            if (!listToMatch.GetIsPattern(i))
+        //            {
+        //                #region ? Simple matches
+
+        //                match(sourceText, listToMatch[i], ref occurs, startIndex, count,
+        //                       ignoreApostrophes, byWord, distinct, crossMatches, removeTags);
+
+        //                #endregion
+        //            }
+        //            else
+        //            {
+        //                #region ! Pattern matches
+
+        //                #endregion
+        //            }
+        //        }
+
+        //        #endregion
+        //    }
+
+        //    if (occurs.Count == 0) { return default; }
+        //    return occurs;
+        //}
+
+        //#endregion
 
         #region ► Matches
 
@@ -1074,39 +412,209 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
+        #endregion
+
         #region ▼ Matches Models
 
         #region » SetParams
 
         private void setParams(TextOptions option)
         {
+            textOption = false;
+
             if (option.HasFlag(TextOptions.IgnoreInSingleQuotes))
-            { ignoreApostrophes = true; }
+            { ignoreApostrophes = true; textOption = true; }
             else { ignoreApostrophes = false; }
 
+            if (option.HasFlag(TextOptions.ByStartWord))
+            { byStartWord = true; textOption = true; }
+            else { byStartWord = false; }
+
+            if (option.HasFlag(TextOptions.ByEndWord))
+            { byEndWord = true; textOption = true; }
+            else { byEndWord = false; }
+
             if (option.HasFlag(TextOptions.Distinct))
-            { distinct = true; }
+            { distinct = true; textOption = true; }
             else { distinct = false; }
 
             if (option.HasFlag(TextOptions.OrderByPosition))
-            { orderByPosition = true; }
+            { orderByPosition = true; textOption = true; }
             else { orderByPosition = false; }
 
-            if (option.HasFlag(TextOptions.OrderByWord))
-            { orderByWord = true; }
-            else { orderByWord = false; }
-
-            if (option.HasFlag(TextOptions.CrossMatches))
-            { crossMatches = true; }
-            else { crossMatches = false; }
-
-            if (option.HasFlag(TextOptions.PatternByWord))
-            { byWord = true; }
-            else { byWord = false; }
-
+            //if (option.HasFlag(TextOptions.OrderByWord))
+            //{ orderByWord = true; }
+            //else { orderByWord = false; }
+                        
             if (option.HasFlag(TextOptions.OnlyCharsInPattern))
-            { onlyPatternParts = true; }
+            { onlyPatternParts = true; textOption = true; }
             else { onlyPatternParts = false; }
+        }
+
+        #endregion
+
+        #region » MatchPattern
+
+        private StringAndPosition matchPattern(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> matchSpanText, int startIndex)
+        {
+            int patIni = 0;
+            int patLen = 0;
+            int patStart = 0;
+
+            int occurIni = -1;
+            int occurLen = 0;
+
+            int orOccurIni = 0;
+            int orOccurLen = 0;
+
+            if (matchSpanText[0] == '*') { occurIni = 0; patStart = 1; patIni = 1; }
+
+            for (int patIndex = patStart; patIndex < matchSpanText.Length; patIndex++)
+            {
+                patLen++;
+                                
+                #region + By wildcard
+
+                if ((matchSpanText[patIndex] == '*' || patIndex == matchSpanText.Length -1) 
+                    && matchSpanText[patIndex] != '|')
+                {
+                    if(matchSpanText[patIni] == '*') { patIni++; }
+                    if(matchSpanText[patIni + (patLen - 1)] == '*') { patLen--; }
+                                              
+                    WordAndPosition occur = matchLitteral(sourceTextSpan, matchSpanText.Slice(patIni, patLen), startIndex);
+
+                    if ( (occur.Position < orOccurIni || orOccurLen == 0) && !occur.Empty)
+                    {
+                        #region + Is a regular pattern
+
+                        if (occurIni == -1 || (occurIni ==0 && textOption) ) { occurIni = occur.Position; occurLen = occur.Word.Length; }
+                        else { occurLen = (occur.Position - occurIni) + occur.Word.Length; }
+
+                        orOccurIni = 0;
+                        orOccurLen = 0;
+
+                        #endregion
+                    }
+                    else if(occur.Position >= orOccurIni || orOccurLen != 0)
+                    {
+                        #region + Is a orCondition pattern
+
+                        if (occurIni == -1) { occurIni = orOccurIni; occurLen = orOccurLen; }
+                        else { occurLen = (orOccurIni - occurIni) + orOccurLen; }
+
+                        orOccurIni = 0;
+                        orOccurLen = 0;
+
+                        #endregion
+                    }
+                    else if(occur.Empty)
+                    {
+                        #region + Don't found any pattern, so returns a empty occurrence
+
+                        return new StringAndPosition("", 0);
+
+                        #endregion
+                    }
+
+                    patLen = 0;
+                    patIni = patIndex + 1;
+                    startIndex = occurIni;
+                }
+
+                #endregion
+
+                #region + By orCondition
+
+                else if (matchSpanText[patIndex] == '|' && patIndex >0)
+                {
+                    if (matchSpanText[patIni] == '|') { patIni++; }
+                    if (matchSpanText[patIni + (patLen - 1)] == '|') { patLen--; }
+
+                    WordAndPosition occur = matchLitteral(sourceTextSpan, matchSpanText.Slice(patIni, patLen), startIndex);
+
+                    if (occur.Position < orOccurIni || orOccurIni ==0 )
+                    {
+                        orOccurIni = occur.Position;
+                        orOccurLen = occur.Word.Length;
+                    }
+
+                    patLen = 0;
+                    patIni = patIndex + 1;
+                    //startIndex = orOccurIni;
+                }
+
+                #endregion
+            }
+
+            if (matchSpanText[matchSpanText.Length -1] == '*') { occurLen = sourceTextSpan.Length - occurIni; }
+
+            return new StringAndPosition(sourceTextSpan.Slice(occurIni, occurLen), occurIni);
+        }
+
+        #endregion
+
+        #region » match
+        private WordAndPosition matchLitteral(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> pattern, int startIndex)
+        {
+            bool ignoreIt = false;
+            int commandIndex = -1;
+
+            for (int pos = startIndex; pos < sourceTextSpan.Length; ++pos)
+            {
+                
+                #region + Lengths of source text and pattern
+
+                if (pos + pattern.Length > sourceTextSpan.Length) { break; }
+
+                #endregion
+
+                #region + Ignore apostrophes
+
+                if (ignoreApostrophes)
+                {
+                    if (sourceTextSpan[pos] == '\'')
+                    { ignoreIt = !ignoreIt; continue; }
+                    if (ignoreIt) continue;
+                }
+
+                #endregion
+
+                #region + By command
+
+                if(byStartWord)
+                {
+                    if (IsSeparator( sourceTextSpan[pos]))
+                    { commandIndex = pos; pos++;}
+                }
+
+                if (byEndWord && commandIndex > -1)
+                {
+                    if (IsSeparator(sourceTextSpan[pos]))
+                    {
+                        return new(sourceTextSpan.Slice(++commandIndex, (pos - commandIndex) + pattern.Length), commandIndex);
+                    }
+                }
+
+                #endregion
+
+                if (sourceTextSpan.Slice(pos, pattern.Length).SequenceEqual(pattern))
+                {
+                    if(byEndWord)
+                    { commandIndex = pos; continue; }
+
+                    WordAndPosition occur;
+
+                    if (commandIndex > -1)
+                    {
+                        occur = new(sourceTextSpan.Slice(++commandIndex, (pos - commandIndex) + pattern.Length), commandIndex);
+                    }
+                    else { occur = new(pattern, pos); }
+
+                    return occur;
+                }
+            }
+
+            return default;
         }
 
         #endregion
@@ -1142,133 +650,150 @@ namespace SmartSharp.TextBuilder
 
         #region » matchFirstPattern
 
-        private static StringAndPosition matchFirstPattern(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> matchSpanText,
-                                                   int startIndex, bool ignoreApostrophes, bool byWord, bool onlyPatternParts)
-        {
-            PatternBuffer pattern = new PatternBuffer(matchSpanText);
+        //private static StringAndPosition matchFirstPattern(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> matchSpanText,
+        //                                           int startIndex, bool ignoreApostrophes, bool onlyPatternParts, ref int posMatch)
+        //{
+        //    PatternBuffer pattern = new PatternBuffer(matchSpanText);
+                        
+        //    #region + Flags
 
-            #region + Flags
+        //    bool ignoreIt = false;
 
-            bool ignoreIt = false;
-            int initOccur = -1;
-            int length = -1;
+        //    int initOccur = -1;
+        //    //if (pattern.CaptureInStart) { initOccur = 0; }
 
-            #endregion
+        //    int length = 0;
 
-            StringAndPosition occur = new StringAndPosition();
-            if (pattern.CaptureInStart) { initOccur = 0; length = 0; }
+        //    #endregion
 
-            for (int pos = startIndex; pos < sourceTextSpan.Length; ++pos)
-            {
-                #region + Lengths of source text and pattern
+        //    int sourceTextLength = sourceTextSpan.Length;
 
-                int segmentLength = pattern.Text.Length;
-                int sourceTextLength = sourceTextSpan.Length;
-                if (pos + segmentLength > sourceTextLength) { break; }
+        //    //Patterns itens
+        //    for (int _iten =0; _iten < patPos.Count; _iten++)
+        //    {
+        //        int patLength = patLens[_iten];
+        //        ReadOnlySpan<char> thisPattern = patPos.Slice(positions[_iten], patLength).ToArray();
 
-                #endregion
+        //        if (pos + patLength > sourceTextLength) { break; }
 
-                #region + Ignore apostrophes
+        //        //Source text characters
+        //        for (int pos = startIndex; pos < sourceTextSpan.Length; ++pos)
+        //        {
+        //            #region + Lengths of source text and pattern
 
-                if (ignoreApostrophes)
-                {
-                    if (sourceTextSpan[pos] == '\'') { ignoreIt = !ignoreIt; continue; }
-                    if (ignoreIt) continue;
-                }
+                    
 
-                #endregion
+        //            #endregion
 
-                bool equalSequence = sourceTextSpan.Slice(pos, segmentLength).SequenceEqual(pattern.Text);
+        //            #region + Ignore apostrophes
 
-                if (
-                     (equalSequence && pattern.Text != "") || //Found equal sequence
-                     (IsSeparator(sourceTextSpan[pos]) && pattern.IsEnd && byWord) || //If By word end pattern
-                     (pattern.CaptureInEnd && pattern.IsEnd)
-                   )
-                {
-                    #region + Found literal occurence
+        //            if (ignoreApostrophes)
+        //            {
+        //                if (sourceTextSpan[pos] == '\'') { ignoreIt = !ignoreIt; continue; }
+        //                if (ignoreIt) continue;
+        //            }
 
-                    if (equalSequence)
-                    {
-                        if (length == -1) { length = 0; }
+        //            #endregion
+                                                            
+        //            int equalSequenceLen = pattern.SequenceEqual(sourceTextSpan.Slice(pos, patLength));
 
-                        if (onlyPatternParts)
-                        { pos += segmentLength; initOccur = pos; }
-                        else
-                        {
-                            length += segmentLength;
-                            if (!pattern.InCapture) { initOccur = pos; }
-                            pos += segmentLength;
-                        }
+        //            if (equalSequenceLen != 0)
+        //            {
+        //                #region + Start position of match
+        //                if (pattern.IsFirst && pattern.CaptureInStart)
+        //                {
+        //                    initOccur = 0;
+        //                }
+        //                #endregion
 
-                        pattern.Captured();
-                    }
+        //                #region + Not first pattern
+        //                if ( initOccur ==-1) 
+        //                {
+        //                    initOccur = pos;
+        //                    length = equalSequenceLen;
+        //                }
+        //                #endregion
 
-                    #endregion
+        //                else
+        //                {
+        //                    #region + Length of match
 
-                    #region + CaptureEnd and end of pattern
+        //                    length = (pos - initOccur ) + equalSequenceLen;
 
-                    if (pattern.IsEnd && pattern.Done)
-                    {
-                        if (pattern.CaptureInEnd) { length = sourceTextLength - initOccur; }
-                        return new StringAndPosition(sourceTextSpan.Slice(initOccur, length), initOccur);
-                    }
+        //                    #endregion
+        //                }
 
-                    #endregion
-                }
-                else
-                {
-                    if (!pattern.InCapture) initOccur = pos + 1;
-                    if (pattern.InCapture) length++;
-                }
-            }
+        //                pattern.Captured();
 
-            return null;
-        }
+        //                #region + Is end of match and there is wildcard in end of pattern
+
+        //                if (pattern.CaptureInEnd && pattern.IsEnd)
+        //                {
+        //                    length = (sourceTextSpan.Length - initOccur);
+        //                    break;
+        //                }
+
+        //                #endregion
+
+        //                #region + End of match
+
+        //                startIndex = initOccur + length;
+        //                break;
+
+        //                #endregion
+
+        //            }
+
+        //        }
+        //    }
+
+        //    if (pattern.CapturedAll)
+        //    {
+        //        return new(sourceTextSpan.Slice(initOccur, length ), initOccur);
+        //    }
+        //    else
+        //    {
+        //        return null;
+        //    }
+        //}
 
         #endregion
 
         #region » match
-        private static void match(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> matchSpanText,
-                                  ref MatchEntry occurs, int startIndex, int count, bool ignoreApostrophes,
-                                  bool byWord, bool distinct, bool crossMatches, bool removeTags)
-        {
-            bool ignoreIt = false;
-            int posIndex = 0;
+        //private static void match(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> matchSpanText,
+        //                          ref MatchEntry occurs, int startIndex, int count, bool ignoreApostrophes,
+        //                          bool byWord, bool distinct, bool crossMatches, bool removeTags)
+        //{
+        //    bool ignoreIt = false;
+        //    int posIndex = 0;
 
-            for (int pos = startIndex; pos < sourceTextSpan.Length; ++pos)
-            {
-                if (pos + matchSpanText.Length > sourceTextSpan.Length) { break; }
+        //    for (int pos = startIndex; pos < sourceTextSpan.Length; ++pos)
+        //    {
+        //        if (pos + matchSpanText.Length > sourceTextSpan.Length) { break; }
 
-                if (ignoreApostrophes)
-                {
-                    if (sourceTextSpan[pos] == '\'') { ignoreIt = !ignoreIt; continue; }
-                    if (ignoreIt) continue;
-                }
+        //        if (ignoreApostrophes)
+        //        {
+        //            if (sourceTextSpan[pos] == '\'') { ignoreIt = !ignoreIt; continue; }
+        //            if (ignoreIt) continue;
+        //        }
 
-                if (sourceTextSpan.Slice(pos, matchSpanText.Length).SequenceEqual(matchSpanText))
-                {
-                    //resultMatches[posIndex++] =
-                    occurs.Add(matchSpanText.ToString(), pos);
+        //        if (sourceTextSpan.Slice(pos, matchSpanText.Length).SequenceEqual(matchSpanText))
+        //        {
+        //            //resultMatches[posIndex++] =
+        //            occurs.Add(matchSpanText.ToString(), pos);
 
-                    if (distinct || count == 1) { break; }
+        //            if (distinct || count == 1) { break; }
 
-                    posIndex = pos;
-                    pos += matchSpanText.Length;
-                }
-            }
+        //            posIndex = pos;
+        //            pos += matchSpanText.Length;
+        //        }
+        //    }
 
-            return;
-        }
-
-        #endregion
-
-        #region » matchFirstPattern
-
-
+        //    return;
+        //}
 
         #endregion
-
+               
         #region » matchPattern
         //private void matchPattern(string matchText)
         //{
@@ -1333,146 +858,7 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
-        #region » breakByWord
-
-        //private static char breakOrContinueByWord(ref ReadOnlySpan<char> sourceText, ref PatternBuffer pattern,
-        //                                          ref StringAndPosition occur, int pos, ref int initOccur)
-        //{
-        //    char lastChar = '\0';
-        //    char nextChar = '\0';
-        //    int length = 0;
-
-        //    if (IsSeparator(sourceText[pos]))
-        //    {
-        //        if (pos != 0) { lastChar = sourceText[pos - 1]; }
-        //        else { lastChar = '\0'; }
-        //        if ((pos + 1) < sourceText.Length)
-        //        { nextChar = sourceText[pos + 1]; }
-        //        else { nextChar = '\0'; }
-
-        //        if (!IgnoreSeparator(sourceText[pos], lastChar, nextChar))
-        //        {
-        //            if (pattern.IsEnd)
-        //            {
-        //                #region + End of pattern
-
-        //                length = pos - initOccur;
-        //                occur.Set(sourceText.Slice(initOccur, length).ToString(), initOccur);
-
-        //                if (doneMatch(ref pattern, ref initOccur, ref pos, length))
-        //                { return 'b'; }
-
-        //                #endregion
-        //            }
-        //            else if (pattern.IsFirst)
-        //            {
-        //                #region + Start of pattern
-
-        //                initOccur = pos + 1; return 'c';
-
-        //                #endregion
-        //            }
-        //            else
-        //            { initOccur = pos + 1; return 'b'; }
-        //        }
-        //    }
-
-        //    return '\0';
-        //}
-
-        #endregion
-
-        #region » doneMatch
-
-        //private static bool doneMatch(ref PatternBuffer pattern, ref int initOccur, ref int pos, int length)
-        //{
-        //    if (distinct || count == 1)
-        //    { return true; }
-        //    else if (crossMatches)
-        //    {
-        //        #region + CrossMatches
-
-        //        startIndex = initOccur = 1;
-        //        pos = startIndex;
-        //        pattern.Reset();
-        //        if (pattern.InCapture && !byWord) { initOccur = startIndex; }
-        //        else { initOccur = -1; }
-
-        //        #endregion
-        //    }
-        //    else
-        //    {
-        //        #region + Next occur after current occur
-
-        //        startIndex = initOccur + length;
-        //        pos = startIndex;
-        //        pattern.Reset();
-        //        if (pattern.InCapture && !byWord) { initOccur = startIndex; }
-        //        else { initOccur = -1; }
-
-        //        #endregion
-        //    }
-
-        //    return false;
-        //}
-
-        #endregion
-
-        #region » endOfPatternWildcard
-
-        private bool endOfPatternWildcard(ref ReadOnlySpan<char> sourceText, ref MatchEntry occurs, bool inCapture, int length, int initOccur)
-        {
-            #region + Early end of capture
-
-            if (!byWord)
-            {
-                if (inCapture && !byWord) { length = sourceText.Length - initOccur; }
-                occurs.Add(sourceText.Slice(initOccur, length).ToString(), initOccur);
-                return true;
-            }
-            else { return false; }
-
-            #endregion
-        }
-
-        #endregion
-
-        #region » EndOfMatch
-
-        //private bool endOfMatch(ref ReadOnlySpan<char> sourceText, ref PatternBuffer pattern, int pos, int length, int initOccur)
-        //{
-        //    if (!pattern.InCapture)
-        //    {
-        //        #region + Add occur in Occurs StringBuffer
-
-        //        int segmentLength = pattern.Length;
-        //        length = (pos - initOccur) + segmentLength;
-        //        occurs.Add(sourceText.Slice(initOccur, length).ToString(), initOccur);
-
-        //        #endregion
-        //    }
-        //    else
-        //    {
-        //        #region + Early end of capture
-
-        //        if (!endOfPatternWildcard( ref sourceText, pattern.InCapture, length, initOccur))
-        //        { return false; }
-
-        //        #endregion
-        //    }
-
-        //    #region ? Not duplicate or only one occurs
-
-        //    if (doneMatch(ref pattern, ref initOccur, ref pos, length))
-        //    { return true; }
-
-        //    #endregion
-
-        //    return false;
-        //}
-
-        #endregion
-
+       
         #endregion
 
         #region ▼ Snippets
