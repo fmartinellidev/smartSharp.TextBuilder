@@ -12,9 +12,8 @@ namespace TextBuilder_Tester
     {
         #region ▼ Initialize
 
-        public TextBuilder text;
-        public TextBuilder html;
-        public string textStr;
+        public string text;
+        public string html;
 
         private Stopwatch _stopwatch;
         private long _memoriaAntes;
@@ -22,7 +21,7 @@ namespace TextBuilder_Tester
         [SetUp]
         public void Setup()
         {
-            html = new(@"<head>
+            html = @"<head>
                                         <meta charset='UTF-8'>
                                         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
                                         <title></title>
@@ -57,10 +56,9 @@ namespace TextBuilder_Tester
                                             <div style='height:8px; top:-2px; left:84px;' class='divPlantVerticalLine'></div>
                                             <div id='divValorFinal' style='width:32px; top:44px; left:84px;' class='divPlantHorizontalLine'></div>
                                         </div>
-                                    </section>");
+                                    </section>";
 
-            text = new(
-                @"PRIVATE INSTRUMENT OF PROMISE OF PURCHASE AND SALE OF PROPERTY
+            text = @"PRIVATE INSTRUMENT OF PROMISE OF PURCHASE AND SALE OF PROPERTY
                       
                       SUBJECT OF SUBDIVISION
                       
@@ -72,66 +70,11 @@ namespace TextBuilder_Tester
                            Batista, nº 2281, room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
                            represented in this act in accordance with its Articles of Incorporation, in the capacity 
                            of Owner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner', Marie Doe Towner is Brazilian national, broker, married, registered under 
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
                            CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
                            Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
                            providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-
-                      B. THE SUBDIVISION:
-
-                      The type of property is a residential subdivision, named LOTEAMENTO RESIDENCIAL BARCELONA, located 
-                      in Araçatuba, State of São Paulo, registered under property record nº 100.314 at the Real Estate 
-                      Registry Office of the District of Araçatuba – State of São Paulo.
-
-                      B.1. Subdivision Description:
-                           The LOTEAMENTO RESIDENCIAL BARCELONA will be developed according to the specifications 
-                           contained in the Descriptive Report, copies of which will be archived along with the 
-                           registration process of the development.
-                           The BUYER is fully and unequivocally aware that the information contained in the Conceptual 
-                           Plan is merely illustrative and may be modified according to the needs of the project and 
-                           the interest of the SELLER and/or determinations from the competent public authorities.
-
-                      B.2. Basic Characteristics of the Subdivision:
-
-                      - Name: Jardim Barcelona, cidade de Araraquara/SP.
-                      - Total Area: 315,467.00 m².
-                      - Area allocated for Residential Lots: 136,705.37 m².
-                      - Area allocated for Commercial Lots: 3,031.19 m².
-                      - Leisure System: 27,381.80 m².
-                      - Area allocated for the Entrance Gate: 704.85 m².
-                      - Green Areas: 40,860.29 m².
-                      - Total Road System: 91,579.16 m².
-                      - Institutional Areas: 15,909.19 m².
-                      - Total Number of Lots: 609.
-                      - Residential Lots: 608.
-                      - Commercial Lots: 01.
-
-                      B.3. Deadline for completion of infrastructure works:
-                           24 (twenty-four) months, counted from the date of the public launch of the subdivision, 
-                           which was carried out on December 5, 2015, and may be anticipated at any time or extended 
-                           for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument."
-            );
-
-            textStr = @"PRIVATE INSTRUMENT OF PROMISE OF PURCHASE AND SALE OF PROPERTY
-                      
-                      SUBJECT OF SUBDIVISION
-                      
-                      Summary Table
-
-                      A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
-                           with the CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista, nº 2281, room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance with its Articles of Incorporation, in the capacity 
-                           of Owner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner', Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           email marie@gmail.com; married to John Doe Silva, registered under CPF number 012.869.980-93, 
                            RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
                            hereinafter simply referred to as BUYER.
 
@@ -168,7 +111,7 @@ namespace TextBuilder_Tester
                            24 (twenty-four) months, counted from the date of the public launch of the subdivision, 
                            which was carried out on December 5, 2015, and may be anticipated at any time or extended 
                            for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.";
-
+                        
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
@@ -196,40 +139,55 @@ namespace TextBuilder_Tester
         }
 
         #endregion
-                
+
         #region ▼ Match
 
-        #region ► MatchFirst
-
-        //[Test]
-        //public void Test01_MatchFirst()
-        //{
-        //    MatchEntry firstMatch = text.MatchFirst("Marie Doe|John Doe");
-        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
-
-        //    //Duration: 1ms, Memory: 352 bytes
-
-        //    //RETURN: John Doe - 840
-        //}
-
-        //[Test]
-        //public void Test02_MatchFirst_IgnoreSingleQuotes()
-        //{
-        //    MatchEntry firstMatch = text.MatchFirst("John Doe|Marie Doe", TextOptions.IgnoreInSingleQuotes);
-        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
-
-        //    //Duration: 1ms, Memory: 456 bytes
-
-        //    //RETURN: Marie Doe - 860
-        //}
+        #region ► Litteral Match
 
         [Test]
-        public void Test03_MatchFirstPattern_PatternInStart()
+        public void Test01_Match()
         {
-            StringAndPosition firstMatch = text.MatchFirst(@"*residential");
+           StringAndPosition firstMatch = TextBuilder.Match(text,"Marie Doe|John Doe");
             Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 2ms, Memory: 7944 bytes
+            //Duration: 1ms, Memory: 352 bytes
+
+            //RETURN: John Doe - 842
+        }
+
+        [Test]
+        public void Test02_Match_IgnoreSingleQuotes()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "John Doe|Marie Doe", TextOptions.IgnoreInSingleQuotes);
+            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+
+            //Duration: 1ms, Memory: 456 bytes
+
+            //RETURN: Marie Doe - 861
+        }
+
+        [Test]
+        public void Test02b_Match_IgnoreCase()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "john doe|marie doe", TextOptions.IgnoreCase);
+            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+
+            //Duration: 2ms, Memory: 400 bytes
+
+            //RETURN: John Doe - 842
+        }
+
+        #endregion
+
+        #region ► Pattern Match
+
+        [Test]
+        public void Test03_MatchPattern_PatternInStart()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"*residential");
+            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+
+            //Duration: 1ms, Memory: 7280 bytes
 
 
             //RETURN:
@@ -262,9 +220,9 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test04_MatchFirstPattern_PatternInMiddle()
+        public void Test04_MatchPattern_PatternInMiddle()
         {
-            StringAndPosition firstMatch = text.MatchFirst("Name*Jard*.");
+            StringAndPosition firstMatch = TextBuilder.Match(text, "Name*Jard*.");
             Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
             //Duration: 1ms, Memory: 688 bytes
@@ -275,9 +233,9 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test05_MatchFirstPattern_PatternInEnd()
+        public void Test05_MatchPattern_PatternInEnd()
         {
-            StringAndPosition firstMatch = text.MatchFirst("B.3.*");
+            StringAndPosition firstMatch = TextBuilder.Match(text, "B.3.*");
 
             if (firstMatch.Empty)
             {
@@ -299,9 +257,24 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test07_MatchFirstPattern_PatternWithOrCondition()
+        public void Test06_MatchPattern_MoreThanOnePattern()
         {
-            StringAndPosition firstMatch = text.MatchFirst(@"married*Marie|John|Jack");
+            StringAndPosition firstMatch = TextBuilder.Match(text, "Name:*cidade de *.");
+
+            if (firstMatch == null) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+
+            //Duration: 1ms, Memory: 688 bytes
+
+            //RETURN:
+            // Name: Jardim Barcelona, cidade de Araraquara/SP. */
+
+        }
+
+        [Test]
+        public void Test07_MatchPattern_PatternWithOrCondition()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack");
             Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
             //Duration: 1ms, Memory: 456 bytes
@@ -311,9 +284,9 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test07b_MatchFirstPattern_RegexWithOrCondition()
+        public void Test07b_MatchPattern_RegexWithOrCondition()
         {
-            Match firstMatch = Regex.Match( textStr, @"married(.*?)(Marie|John|Jack)");
+            Match firstMatch = Regex.Match( text, @"married(.*?)(Marie|John|Jack)");
             Console.WriteLine(firstMatch.Value);
 
             //Duration: 6ms, Memory: 3424 bytes
@@ -322,264 +295,124 @@ namespace TextBuilder_Tester
             /*infrastructure - 3521*/
         }
 
-        [Test]
-        public void Test08_MatchFirstPattern_PatternInStartByWord()
-        {
-            StringAndPosition firstMatch = text.MatchFirst(@"*cture", TextOptions.ByStartWord);
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
-
-            //Duration: 1ms, Memory: 456 bytes
-
-            //RETURN:
-            /*infrastructure - 3521*/
-        }
-
-        [Test]
-        public void Test09_MatchFirstPattern_PatternInEndByWord()
-        {
-            StringAndPosition firstMatch = text.MatchFirst(@"infra*", TextOptions.ByEndWord);
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
-
-            //Duration: 1ms, Memory: 456 bytes
-
-            //RETURN:
-            /*infrastructure - 3521*/
-        }
-
-        //[Test]
-        //public void Test07_MatchFirstPattern_PatternInStartByWord()
-        //{
-        //    MatchEntry firstMatch = text.MatchFirst(@"\w/SP");
-        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
-
-        //    //Duration: 2ms, Memory: 528 bytes
-
-        //    //RETURN: <Paulo/SP
-        //}
-
-        //[Test]
-        //public void Test08_MatchFirstPattern_MoreThanOnePattern()
-        //{
-        //    MatchEntry firstMatch = text.MatchFirst("Name:*cidade de *.", TextOptions.OnlyCharsInPattern);
-
-        //    if (firstMatch == null) { Console.WriteLine("Not match found!"); }
-        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
-
-        //    //Duration: 2ms, Memory: 528 bytes
-
-        //    //RETURN:
-        //    // Name: Jardim Barcelona -2792 */
-
-        //}
-
         #endregion
 
-        #region ► Matches
+        #region ► Dynamic Match
 
         [Test]
-        public void Test09_MatchesPatternInStart()
+        public void Test08_MatchDynamic_StartByWord()
         {
-            //WordsMatches firstMatch = text.Matches("*BUYER");
-            //int index = 1;
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"\cture");
+            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //foreach (string word in firstMatch.Words())
-            //{
-            //    Console.WriteLine(Environment.NewLine + $"#{index++} Occurence" + Environment.NewLine + word);
-            //}
-
-            //Duration: 3ms, Memory: 8232 bytes
-
-            #region ▼ Return Occurrences
-
-            /*
-             #1 Occurence
-PRIVATE INSTRUMENT OF PROMISE OF PURCHASE AND SALE OF PROPERTY
-                      
-                      SUBJECT OF SUBDIVISION
-                      
-                      Summary Table
-
-                      A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
-                           with the CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista, nº 2281, room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance with its Articles of Incorporation, in the capacity 
-                           of Owner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER
-
-#2 Occurence
-(S), married with 'John Doe Towner', Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER
-
-#3 Occurence
-.
-
-                      B. THE SUBDIVISION
-
-                      The type of property is a residential subdivision, named LOTEAMENTO RESIDENCIAL BARCELONA, located 
-                      in Araçatuba, State of São Paulo, registered under property record nº 100.314 at the Real Estate 
-                      Registry Office of the District of Araçatuba – State of São Paulo.
-
-                      B.1. Subdivision Description:
-                           The LOTEAMENTO RESIDENCIAL BARCELONA will be developed according to the specifications 
-                           contained in the Descriptive Report, copies of which will be archived along with the 
-                           registration process of the development.
-                           The BUYER
-             */
-
-            #endregion
-        }
-
-        [Test]
-        public void Test10_MatchesPatternInMiddle()
-        {
-            //WordsMatches firstMatch = text.Matches("Lots:*m²");
-
-            //int index = 1;
-            //foreach (string word in firstMatch.Words())
-            //{
-            //    Console.WriteLine(Environment.NewLine + $"#{index++} Occurence" + Environment.NewLine + word);
-            //}
-
-            //Duration: 2ms, Memory: 1824 bytes
-
-            //RETURN: 
-            /*
-             #1 Occurence
-             Lots: 136,705.37 m²
-
-             #2 Occurence
-             Lots: 3,031.19 m²
-             */
-        }
-
-        [Test]
-        public void Test11_MatchesPatternInEnd()
-        {
-            //WordsMatches firstMatch = text.Matches("B.*");
-
-            //int index = 1;
-            //foreach (string word in firstMatch.Words())
-            //{
-            //    Console.WriteLine(Environment.NewLine + $"#{index++} Occurence" + Environment.NewLine + word);
-            //}
-
-            //Duration: 2ms, Memory: 10608 bytes
-
-            #region ▼ Return occurs
+            //Duration: 2ms, Memory: 456 bytes
 
             //RETURN:
-            /*
-                     #1 Occurence
-                      B. THE SUBDIVISION:
-
-                      The type of property is a residential subdivision, named LOTEAMENTO RESIDENCIAL BARCELONA, located 
-                      in Araçatuba, State of São Paulo, registered under property record nº 100.314 at the Real Estate 
-                      Registry Office of the District of Araçatuba – State of São Paulo.
-
-                      B.1. Subdivision Description:
-                           The LOTEAMENTO RESIDENCIAL BARCELONA will be developed according to the specifications 
-                           contained in the Descriptive Report, copies of which will be archived along with the 
-                           registration process of the development.
-                           The BUYER is fully and unequivocally aware that the information contained in the Conceptual 
-                           Plan is merely illustrative and may be modified according to the needs of the project and 
-                           the interest of the SELLER and/or determinations from the competent public authorities.
-
-                      B.2. Basic Characteristics of the Subdivision:
-
-                      - Name: Jardim Barcelona.
-                      - Total Area: 315,467.00 m².
-                      - Area allocated for Residential Lots: 136,705.37 m².
-                      - Area allocated for Commercial Lots: 3,031.19 m².
-                      - Leisure System: 27,381.80 m².
-                      - Area allocated for the Entrance Gate: 704.85 m².
-                      - Green Areas: 40,860.29 m².
-                      - Total Road System: 91,579.16 m².
-                      - Institutional Areas: 15,909.19 m².
-                      - Total Number of Lots: 609.
-                      - Residential Lots: 608.
-                      - Commercial Lots: 01.
-
-                      B.3. Deadline for completion of infrastructure works:
-                           24 (twenty-four) months, counted from the date of the public launch of the subdivision, 
-                           which was carried out on December 5, 2015, and may be anticipated at any time or extended 
-                           for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.
-             */
-            #endregion
+            /*infrastructure - 3521*/
         }
 
         [Test]
-        public void Test12_MatchesPatternInEndByWord()
+        public void Test09_MatchDinamic_EndByWord()
         {
-            //WordsMatches firstMatch = text.Matches("2*", TextOptions.PatternByWord);
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"infra\");
+            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //int index = 1;
-            //foreach (string word in firstMatch.Words())
-            //{
-            //    Console.WriteLine(Environment.NewLine + $"#{index++} Occurence" + Environment.NewLine + word);
-            //}
-
-            //Duration: 3ms, Memory: 2752 bytes
-
-            #region ▼ Result occur
+            //Duration: 2ms, Memory: 456 bytes
 
             //RETURN:
-            /*
-                     #1 Occurence
-                     22.724.722/0001-21
+            /*infrastructure - 3521*/
+        }
 
-                     #2 Occurence
-                     2281
+        [Test]
+        public void Test10_MatchDynamic_PatternAndAndEndWord()
+        {
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"married to*Sil\");
 
-                     #3 Occurence
-                     2
+            if (firstMatch.Empty)
+            { Console.WriteLine("Ocorrencia não encontrada!"); }
+            else
+            { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-                     #4 Occurence
-                     2
+            //Duration: 2ms, Memory: 592 bytes
 
-                     #5 Occurence
-                     23.300.225-3
+            //RETURN: <Paulo/SP
+        }
+                
+        [Test]
+        public void Test12_MatchDynamic_Number()
+        {
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"#.#.#-#");
 
-                     #6 Occurence
-                     21
+            if (firstMatch == null) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-                     #7 Occurence
-                     21-002
+            //Duration: 1ms, Memory: 456 bytes
 
-                    #8 Occurence
-                    21
+            //RETURN:
+            // Name: Jardim Barcelona, cidade de Araraquara/SP. */
 
-                    #9 Occurence
-                    21
+        }
 
-                    #10 Occurence
-                    2.869.980-93
+        [Test]
+        public void Test13_MatchDynamic_NumberAndLitteral()
+        {
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"Area: #,#.#");
 
-                    #11 Occurence
-                    2.456.543-2
+            if (firstMatch == null) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-                    #12 Occurence
-                    2
+            //Duration: 1ms, Memory: 688 bytes
 
-                    #13 Occurence
-                    27,381.80
+            //RETURN:
+            // Area: 315,467.00 - 2872
 
-                    #14 Occurence
-                    29
+        }
 
-                    #15 Occurence
-                    24
+        [Test]
+        public void Test14_MatchDynamic_Letters()
+        {
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "@,");
 
-                    #16 Occurence
-                    2015
-             */
+            if (firstMatch == null) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-            #endregion
+            //Duration: 2ms, Memory: 384 bytes
+
+            //RETURN:
+            // LTDA,- 291
+
+        }
+
+        [Test]
+        public void Test15_MatchDynamic_WordSeparator()
+        {
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "Ipanema_in");
+
+            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+
+            //Duration: 2ms, Memory: 456 bytes
+
+            //RETURN:
+            // Ipanema, in - 514
+
+        }
+
+        [Test]
+        public void Test16_MatchDynamic_WordSeparator()
+        {
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "Table_A");
+
+            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+
+            //Duration: 2ms, Memory: 656 bytes
+
+            //RETURN:
+            /* Table
+
+            A - 188 */
+
         }
 
         #endregion
@@ -588,63 +421,63 @@ PRIVATE INSTRUMENT OF PROMISE OF PURCHASE AND SALE OF PROPERTY
 
         #region ▼ Snippets
 
-        #region ► Snippet
+        //#region ► Snippet
 
-        [Test]
-        public void Test13_SnippetFirst()
-        {
-            string firstMatch = html.ExtractFirstSnippet("<div*</div>");
-            Console.WriteLine(firstMatch);
+        //[Test]
+        //public void Test13_SnippetFirst()
+        //{
+        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div*</div>");
+        //    Console.WriteLine(firstMatch);
 
-            //Duration: 1ms, Memory: 7032 bytes
-        }
+        //    //Duration: 1ms, Memory: 7032 bytes
+        //}
 
-        [Test]
-        public void Test14_SnippetFirstRegex()
-        {
-            //string firstMatch = Regex.Match(html.SourceText, @"\<div(\s)id\=\'divPopupVertical\'((.|\n|\t)*?)divPopupVertical<\/div\>").Value;
-            //Console.WriteLine(firstMatch);
+        //[Test]
+        //public void Test14_SnippetFirstRegex()
+        //{
+        //    //string firstMatch = Regex.Match(html.SourceText, @"\<div(\s)id\=\'divPopupVertical\'((.|\n|\t)*?)divPopupVertical<\/div\>").Value;
+        //    //Console.WriteLine(firstMatch);
 
-            //Duration: 7ms, Memory: 72144 bytes
-        }
+        //    //Duration: 7ms, Memory: 72144 bytes
+        //}
 
-        [Test]
-        public void Test15_SnippetFirstIdentifiedSnippet()
-        {
-            string firstMatch = html.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
-            Console.WriteLine(firstMatch);
+        //[Test]
+        //public void Test15_SnippetFirstIdentifiedSnippet()
+        //{
+        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
+        //    Console.WriteLine(firstMatch);
 
-            //Duration: 1ms, Memory: 5472 bytes
-        }
+        //    //Duration: 1ms, Memory: 5472 bytes
+        //}
 
-        [Test]
-        public void Test16_SnippetFirstIdentifiedAndConsiderApotrophesContent()
-        {
-            string firstMatch = html.ExtractFirstSnippet("<div *</div>", "id='divTemp'", TextOptions.IgnoreInSingleQuotes);
-            Console.WriteLine(firstMatch);
+        //[Test]
+        //public void Test16_SnippetFirstIdentifiedAndConsiderApotrophesContent()
+        //{
+        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'", TextOptions.IgnoreInSingleQuotes);
+        //    Console.WriteLine(firstMatch);
 
-            //Duration: 1ms, Memory: 720 bytes
-        }
+        //    //Duration: 1ms, Memory: 720 bytes
+        //}
 
-        #endregion
+        //#endregion
 
-        #region ► All Snippets
+        //#region ► All Snippets
 
-        [Test]
-        public void Test17_SnippetsAll()
-        {
-            string[] firstMatch = html.ExtractSnippets("<div *</div>");
+        //[Test]
+        //public void Test17_SnippetsAll()
+        //{
+        //    string[] firstMatch = TextBuilder.ExtractSnippets("<div *</div>");
 
-            int _index = 1;
-            foreach (string s in firstMatch)
-            {
-                Console.WriteLine($"Snippet #{_index++} -> {Environment.NewLine}{s}");
-            }
+        //    int _index = 1;
+        //    foreach (string s in firstMatch)
+        //    {
+        //        Console.WriteLine($"Snippet #{_index++} -> {Environment.NewLine}{s}");
+        //    }
 
-            //Duration: 1ms, Memory: 352 bytes
-        }
+        //    //Duration: 1ms, Memory: 352 bytes
+        //}
 
-        #endregion
+        //#endregion
 
         #endregion
 
