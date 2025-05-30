@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.VisualBasic.FileIO;
+using System;
 using System.Buffers;
 using System.Text;
 
@@ -35,7 +36,12 @@ namespace SmartSharp.TextBuilder
         /// <summary>
         /// The list of matches return sorted by position in text
         /// </summary>
-        IgnoreCase = 50
+        IgnoreCase = 50,
+
+        // <summary>
+        /// The list of matches return sorted by position in text
+        /// </summary>
+        EnableDynamicChars = 60
 
     }
 
@@ -76,7 +82,15 @@ namespace SmartSharp.TextBuilder
 
     public ref struct WordAndPosition
     {
-        public bool Empty { get { return Word.Length == 0; } }
+        public bool Empty 
+        { 
+            get 
+            {
+                if (Word.Length == 0 || Position < 1)
+                { return true; }
+                else { return false; }
+            } 
+        }
         public int Position { get; set; }
         public ReadOnlySpan<char> Word { get; set; }
 
@@ -116,28 +130,7 @@ namespace SmartSharp.TextBuilder
         }
 
         #endregion
-
-        #region ▼ Params
-
-        private static bool textOption = false;
-        private static bool ignoreApostrophes = false;
-        private static bool distinct = false;
-        private static bool removeTags = false;
-        private static bool orderByPosition = false;
-        private static bool onlyPatternParts = false;
-        private static bool ignoreCase = false;
-
-        #endregion
-
-        #region • EnableDinamicsChars
-
-        private static bool EnableDinamicChars = false;
-
-        #endregion
-
-        private static bool startWord = false;
-        private static bool endWord = false;
-
+                                
         #endregion
 
         #region ▼ Matches Controllers
@@ -151,12 +144,11 @@ namespace SmartSharp.TextBuilder
         /// <para>Use "|" to split various texts. Ex:"john|marie|Jack"</para></param>
         /// <param name="options">Parameters of the search in 'Options' internal class</param>
         /// <returns>Return string of first occurs without case sensitive.</returns>
-        public static StringAndPosition Match( string sourceText, string stringsToMatch, TextOptions option = default)
+        public static StringAndPosition Match( string sourceText, string stringsToMatch, TextOptions options = default)
         {
             ReadOnlySpan<char> sourceTextSpan = sourceText.AsSpan();
-            setParams(option);
                         
-            return matchPattern(sourceText, stringsToMatch, 0);
+            return matchPattern(sourceText, stringsToMatch, 0, false, options);
         }
 
         #endregion
@@ -170,14 +162,10 @@ namespace SmartSharp.TextBuilder
         /// <para>Use "|" to split various texts. Ex:"john|marie|Jack"</para></param>
         /// <param name="options">Parameters of the search in 'Options' internal class</param>
         /// <returns>Return string of first occurs without case sensitive.</returns>
-        public static StringAndPosition MatchDynamic(string sourceText, string stringsToMatch, TextOptions option = default)
+        public static StringAndPosition MatchDynamic(string sourceText, string stringsToMatch, TextOptions options = default)
         {
             ReadOnlySpan<char> sourceTextSpan = sourceText.AsSpan();
-            setParams(option);
-
-            EnableDinamicChars = true;
-
-            return matchPattern(sourceText, stringsToMatch, 0);
+            return matchPattern(sourceText, stringsToMatch, 0, true, options);
         }
 
         #endregion
@@ -186,139 +174,129 @@ namespace SmartSharp.TextBuilder
 
         #region ▼ Matches Models
 
-        #region » SetParams
-
-        private static  void setParams(TextOptions option)
-        {
-            textOption = false;
-
-            ignoreApostrophes = false;
-            distinct = false;
-            orderByPosition = false;
-            EnableDinamicChars = false;
-            ignoreCase = false;
-
-            if (option.HasFlag(TextOptions.IgnoreInSingleQuotes))
-            { ignoreApostrophes = true; textOption = true; }
-            else { ignoreApostrophes = false; }
-                       
-            if (option.HasFlag(TextOptions.Distinct))
-            { distinct = true; textOption = true; }
-            else { distinct = false; }
-
-            if (option.HasFlag(TextOptions.OrderByPosition))
-            { orderByPosition = true; textOption = true; }
-            else { orderByPosition = false; }
-
-            if (option.HasFlag(TextOptions.IgnoreCase))
-            { ignoreCase = true; textOption = true; }
-            else { ignoreCase = false; }
-        }
-
-        #endregion
-
         #region » matchPattern
 
-        private static StringAndPosition matchPattern(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> matchSpanText, int startIndex)
-        {
-            int patIni = 0;
-            int patLen = 0;
-            int patStart = 0;
-
+        private static StringAndPosition matchPattern(ReadOnlySpan<char> sourceTextSpan, 
+                                                      ReadOnlySpan<char> matchSpanText, 
+                                                      int startIndex,
+                                                      bool dynamicChars,
+                                                      TextOptions options)
+        {            
             int occurIni = -1;
             int occurLen = 0;
+            int occurEnd = -1;
+            int patStart = 0;
+            
+            WordAndPosition occur = new();
 
-            int orOccurIni = 0;
-            int orOccurLen = 0;           
-
-            if (matchSpanText[0] == '*') { occurIni = 0; patStart = 1; patIni = 1; }
+            if (matchSpanText[0] == '*')
+            { occurIni = 0; patStart = 1; }
 
             for (int patIndex = patStart; patIndex < matchSpanText.Length; patIndex++)
             {
-                patLen++;
-
-                #region + By wildcard
-
-                if ((matchSpanText[patIndex] == '*' || patIndex == matchSpanText.Length - 1)
-                    && matchSpanText[patIndex] != '|')
+                if (matchSpanText[patIndex] == '*' || patIndex == matchSpanText.Length - 1)
                 {
-                    #region + Litteral pattern
+                    #region + By wildcard
 
-                    if (matchSpanText[patIni] == '*') { patIni++; }
-                    if (matchSpanText[patIni + (patLen - 1)] == '*') { patLen--; }
+                    int patLen = 0;
 
-                    WordAndPosition occur;
+                    if (patIndex < matchSpanText.Length - 1)
+                    { patLen = patIndex - patStart; }
+                    else { patLen = matchSpanText.Length - patStart; }
 
-                    if (!EnableDinamicChars)
-                    { occur = matchLitteral(sourceTextSpan, matchSpanText.Slice(patIni, patLen), startIndex); }
+                    if (!dynamicChars)
+                    { occur = matchLitteral(sourceTextSpan, matchSpanText.Slice(patStart, patLen), startIndex, options); }
                     else
-                    { occur = matchLitteralDynamics(sourceTextSpan, matchSpanText.Slice(patIni, patLen).ToArray(), startIndex); }
+                    { occur = matchLitteralDynamics(sourceTextSpan, matchSpanText.Slice(patStart, patLen).ToArray(), startIndex, options); }
 
-                    if(occur.Position == -1 || occur.Word=="")
+                    if (!occur.Empty)
                     {
-                        #region + Not found any pattern, so returns a empty occurrence
-                        return new StringAndPosition("", 0);
-                        #endregion
+                        if (occur.Position < occurIni || occurIni == -1)
+                        { occurIni = occur.Position; }
+                        
+                        if ((occur.Position + occur.Word.Length) >= occurEnd)
+                        { occurEnd = occur.Position + occur.Word.Length; }
                     }
+                    else if (occur.Empty) { occurIni = -1; break; }
+
+                    patStart = patIndex + 1; // Start next pattern after '*'
 
                     #endregion
-
-                    if ((occur.Position < orOccurIni || orOccurLen == 0) && !occur.Empty)
-                    {
-                        #region + Is a regular pattern
-
-                        if (occurIni == -1 || (occurIni == 0 && textOption)) { occurIni = occur.Position; occurLen = occur.Word.Length; }
-                        else { occurLen = (occur.Position - occurIni) + occur.Word.Length; }
-
-                        orOccurIni = 0;
-                        orOccurLen = 0;
-
-                        #endregion
-                    }
-                    else if (occur.Position >= orOccurIni || orOccurLen != 0)
-                    {
-                        #region + Is a orCondition pattern
-
-                        if (occurIni == -1) { occurIni = orOccurIni; occurLen = orOccurLen; }
-                        else { occurLen = (orOccurIni - occurIni) + orOccurLen; }
-
-                        orOccurIni = 0;
-                        orOccurLen = 0;
-
-                        #endregion
-                    }
-                    
-                    patLen = 0;
-                    patIni = patIndex + 1;
-                    startIndex = occurIni + patLen;
                 }
-
-                #endregion
-
-                #region + By orCondition
-
-                else if (matchSpanText[patIndex] == '|' && patIndex > 0)
+                else if (matchSpanText[patIndex] == '|')
                 {
-                    if (matchSpanText[patIni] == '|') { patIni++; }
-                    if (matchSpanText[patIni + (patLen - 1)] == '|') { patLen--; }
+                    #region + By orCondition
 
-                    WordAndPosition occur = matchLitteral(sourceTextSpan, matchSpanText.Slice(patIni, patLen), startIndex);
+                    bool orMatched = false;
+                    int patLen = 0;
+                    int orIni = -1;
+                    int orEnd = -1;
 
-                    if (occur.Position < orOccurIni || orOccurIni == 0)
+                    for (int i = patIndex; i < matchSpanText.Length; i++)
                     {
-                        orOccurIni = occur.Position;
-                        orOccurLen = occur.Word.Length;
+                        patIndex = i;
+                        
+                        if (matchSpanText[patIndex] == '|' || matchSpanText[patIndex] == '*' ||
+                            patIndex == matchSpanText.Length - 1)
+                        {
+                            #region + Len of pattern
+
+                            if (patIndex < matchSpanText.Length - 1)
+                            { patLen = patIndex - patStart; }
+                            else { patLen = matchSpanText.Length - patStart; }
+                            #endregion
+
+                            #region + Match pattern
+
+                            if (!dynamicChars)
+                            { occur = matchLitteral(sourceTextSpan, matchSpanText.Slice(patStart, patLen), startIndex, options); }
+                            else
+                            { occur = matchLitteralDynamics(sourceTextSpan, matchSpanText.Slice(patStart, patLen).ToArray(), startIndex, options); }
+                            #endregion
+
+                            #region ? If matched, update occur
+
+                            if (!occur.Empty)
+                            {
+                                if (occur.Position < orIni || orIni == -1)
+                                { orIni = occur.Position; orEnd = occur.Position + occur.Word.Length; }
+                                                                
+                                orMatched = true;
+                            }
+                            #endregion
+
+                            patStart = patIndex + 1; // Start next pattern after '|'
+
+                            //If end of patterns
+                            if (matchSpanText[patIndex] == '*') { break; }
+                        }
                     }
 
-                    patLen = 0;
-                    patIni = patIndex + 1;
-                    //startIndex = orOccurIni;
-                }
+                    if (!orMatched) { occurIni = -1; break; }
 
-                #endregion
+                    if(orIni < occurIni || occurIni == -1)
+                    { occurIni = orIni; }
+                    if(orEnd >= occurEnd)
+                    { occurEnd = orEnd; }
+
+                    #endregion
+                } 
             }
 
-            if (matchSpanText[matchSpanText.Length - 1] == '*') { occurLen = sourceTextSpan.Length - occurIni; }
+            #region ? If is a wildcard at the end of pattern
+            if (matchSpanText[matchSpanText.Length - 1] == '*') 
+            {
+                if (occurIni == -1) { occurIni = 0; occurLen = sourceTextSpan.Length; }
+                else { occurLen = sourceTextSpan.Length - occurIni; } 
+            }
+            #endregion
+
+            #region ? If pattern not found
+            else if (occurIni == -1)
+            { return new StringAndPosition(); }
+            #endregion
+
+            occurLen = occurEnd - occurIni;
 
             return new StringAndPosition(sourceTextSpan.Slice(occurIni, occurLen), occurIni);
         }
@@ -326,11 +304,14 @@ namespace SmartSharp.TextBuilder
         #endregion
 
         #region » matchLitteral
-        private static WordAndPosition matchLitteral(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> pattern, int startIndex)
+        private static WordAndPosition matchLitteral( ReadOnlySpan<char> sourceTextSpan, 
+                                                      ReadOnlySpan<char> pattern, 
+                                                      int startIndex, 
+                                                      TextOptions options)
         {
             bool ignoreIt = false;
 
-            for (int pos = startIndex; pos < sourceTextSpan.Length; ++pos)
+            for ( int pos = startIndex; pos < sourceTextSpan.Length; ++pos)
             {
                 
                 #region + Lengths of source text and pattern
@@ -341,7 +322,7 @@ namespace SmartSharp.TextBuilder
 
                 #region + Ignore apostrophes
 
-                if (ignoreApostrophes)
+                if (options.HasFlag(TextOptions.IgnoreInSingleQuotes))
                 {
                     if (sourceTextSpan[pos] == '\'')
                     { ignoreIt = !ignoreIt; continue; }
@@ -350,7 +331,7 @@ namespace SmartSharp.TextBuilder
 
                 #endregion
                                 
-                if (ignoreCase)
+                if (options.HasFlag(TextOptions.IgnoreCase))
                 {
                     #region + Ignore case
 
@@ -373,20 +354,27 @@ namespace SmartSharp.TextBuilder
 
                     #endregion
                 }
-            }
 
-            return new(pattern, -1);
+                startIndex = pos;
+            }
+                        
+            return new("", -1);
         }
 
         #endregion
 
         #region » matchLitteralDynamics
-        private static WordAndPosition matchLitteralDynamics(ReadOnlySpan<char> sourceTextSpan, Span<char> pattern, int startIndex)
+        private static WordAndPosition matchLitteralDynamics(ReadOnlySpan<char> sourceTextSpan, 
+                                                             Span<char> pattern, 
+                                                             int startIndex, 
+                                                             TextOptions options)
         {
             bool ignoreIt = false;
             int pos = 0;
             int patLen = 0;
             int iniOccur = -1;
+            bool startWord = false;
+            bool endWord = false;
 
             WordAndPosition occur;
 
@@ -412,7 +400,7 @@ namespace SmartSharp.TextBuilder
 
                 #region + Ignore apostrophes
 
-                if (ignoreApostrophes)
+                if (options.HasFlag(TextOptions.IgnoreInSingleQuotes))
                 {
                     if (sourceTextSpan[pos] == '\'')
                     { ignoreIt = !ignoreIt; continue; }
@@ -447,7 +435,7 @@ namespace SmartSharp.TextBuilder
 
                 #endregion
 
-                patLen = isMatchedPattern(sourceTextSpan, pattern, ref pos, ref iniOccur);
+                patLen = isMatchedPattern(sourceTextSpan, pattern, ref pos, ref iniOccur, startWord, options);
 
                 if (patLen > 0)
                 {                    
@@ -467,7 +455,7 @@ namespace SmartSharp.TextBuilder
             return occur;
         }
 
-        private static int isMatchedPattern(ReadOnlySpan<char> sourceTextSpan, Span<char> pattern, ref int pos, ref int iniOccur)
+        private static int isMatchedPattern(ReadOnlySpan<char> sourceTextSpan, Span<char> pattern, ref int pos, ref int iniOccur, bool startWord, TextOptions options)
         {
             int patPos = 0;
             int patLen = 0;
@@ -521,6 +509,13 @@ namespace SmartSharp.TextBuilder
                 #region ? Insert char if is in pattern
 
                 else if (sourceTextSpan[txtPos] == pattern[patPos])
+                {
+                    if (iniOccur == -1) { iniOccur = txtPos; }
+                    if (patPos == pattern.Length - 1) { txtPos++; return txtPos - iniOccur; }
+                    else { patPos++; }
+                }
+                else if ( options.HasFlag(TextOptions.IgnoreCase) && 
+                          Char.ToLower((sourceTextSpan[txtPos])) == Char.ToLower(pattern[patPos]))
                 {
                     if (iniOccur == -1) { iniOccur = txtPos; }
                     if (patPos == pattern.Length - 1) { txtPos++; return txtPos - iniOccur; }
@@ -655,12 +650,7 @@ namespace SmartSharp.TextBuilder
             #endregion
 
             string openTag = _openCloseTags[0] + snippet;
-            #region + Params           
-
-            setParams(options);
-
-            #endregion
-
+            
             #region + Occurs list
 
             List<string> occurs = new List<string>();
@@ -675,11 +665,9 @@ namespace SmartSharp.TextBuilder
             {
                 if (pos + openTag.Length > text.Length || pos + closeTag.Length > text.Length) { break; }
 
-                //occur.Append(text[pos]);
-
                 #region + Ignore in apostrophes
 
-                if (ignoreApostrophes)
+                if (options.HasFlag(TextOptions.IgnoreInSingleQuotes))
                 {
                     if (!ignoreIt)
                     {
@@ -714,7 +702,7 @@ namespace SmartSharp.TextBuilder
                     {
                         pos += openTag.Length - 1;
 
-                        if (!removeTags) { occur.Append(openTag); }
+                        if (!options.HasFlag(TextOptions.RemoveOpenCloseTags)) { occur.Append(openTag); }
 
                         openTag = _openCloseTags[0];
                         inOccur = true;
@@ -740,12 +728,12 @@ namespace SmartSharp.TextBuilder
 
                         #region + Remove open/close tags
 
-                        if (!removeTags) { occur.Append(closeTag); }
+                        if (!options.HasFlag(TextOptions.RemoveOpenCloseTags)) { occur.Append(closeTag); }
 
                         #endregion
 
                         string currentOccur = occur.ToString();
-                        if (distinct) { distinctOccurs.Add(currentOccur); }
+                        if (options.HasFlag(TextOptions.Distinct)) { distinctOccurs.Add(currentOccur); }
                         else { occurs.Add(currentOccur); }
                         occur.Clear();
 
@@ -753,7 +741,7 @@ namespace SmartSharp.TextBuilder
                         {
                             if (occurs.Count == count)
                             {
-                                if (distinct) { return distinctOccurs.ToArray(); }
+                                if (options.HasFlag(TextOptions.Distinct)) { return distinctOccurs.ToArray(); }
                                 else { return occurs.ToArray(); }
                             }
                         }
@@ -777,7 +765,7 @@ namespace SmartSharp.TextBuilder
 
             }
 
-            if (distinct) { return distinctOccurs.ToArray(); }
+            if (options.HasFlag(TextOptions.Distinct)) { return distinctOccurs.ToArray(); }
             else { return occurs.ToArray(); }
         }
 

@@ -277,19 +277,31 @@ namespace TextBuilder_Tester
             StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack");
             Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 1ms, Memory: 456 bytes
+            //Duration: 2ms, Memory: 456 bytes
 
             //RETURN:
             /*infrastructure - 3521*/
         }
 
         [Test]
-        public void Test07b_MatchPattern_RegexWithOrCondition()
+        public void Test07b_MatchPattern_PatternWithOrCondition()
         {
-            Match firstMatch = Regex.Match( text, @"married(.*?)(Marie|John|Jack)");
-            Console.WriteLine(firstMatch.Value);
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack*Mcan|Albert|Towner");
+            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 6ms, Memory: 3424 bytes
+            //Duration: 2ms, Memory: 608 bytes
+
+            //RETURN:
+            /*infrastructure - 3521*/
+        }
+
+        [Test]
+        public void Test07c_MatchPattern_PatternWithOrConditionIgnoreCase()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack", TextOptions.IgnoreCase);
+            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+
+            //Duration: 2ms, Memory: 456 bytes
 
             //RETURN:
             /*infrastructure - 3521*/
