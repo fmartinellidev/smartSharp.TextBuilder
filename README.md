@@ -224,6 +224,8 @@ TextBuilder.ExtractSnippets("<div *</div>");
 
 ## ⚡ Benchmark de Desempenho
 
+Em tempo de runtime e publicado, esses resultados podem oferecer mais desempenhos, pois os testes foram medidos em tempo de debug, compilado para debug, em um computador de desenvolvimento. Em um servidor de clould compilada para produção oferecerá um ganho significativo de desempenho.   
+
 | Cenário                          | Ferramenta     | Tempo Médio | Memória Média | Observações |
 |----------------------------------|----------------|-------------|----------------|-------------|
 | Busca literal simples            | TextBuilder    | 1 ms        | 352 bytes      | Alta performance |
