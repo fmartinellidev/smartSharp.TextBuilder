@@ -263,12 +263,6 @@ O **TextBuilder** é a escolha ideal para desenvolvedores que precisam:
 
 ---
 
-## 📄 Licença
-
-Este projeto é de uso livre para fins educacionais e comerciais. Contribuições são bem-vindas!
-
----
-
 # 📘 Documentação Técnica – Matches Models (.NET 9 / C# 13)
 
 ## 🧩 Visão Geral
@@ -408,3 +402,9 @@ Match / MatchDynamic
 var result = Match("The quick brown fox", "quick|slow", TextOptions.IgnoreCase);
 Console.WriteLine(result.Word); // "quick"
 ```
+---
+
+## 📄 Licença
+
+Este projeto é de uso livre para fins educacionais e comerciais. Contribuições são bem-vindas!
+Vale lembrar que ainda estou desenvolvendo a ferramenta e novas funcionalidades e atualizações serão feitas.
