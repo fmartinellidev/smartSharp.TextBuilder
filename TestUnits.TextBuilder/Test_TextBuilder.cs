@@ -301,7 +301,7 @@ namespace TextBuilder_Tester
             StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack", TextOptions.IgnoreCase);
             Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 2ms, Memory: 456 bytes
+            //Duration: 2ms, Memory: 504 bytes
 
             //RETURN:
             /*infrastructure - 3521*/
@@ -317,7 +317,7 @@ namespace TextBuilder_Tester
             StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"\cture");
             Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 2ms, Memory: 456 bytes
+            //Duration: 2ms, Memory: 504 bytes
 
             //RETURN:
             /*infrastructure - 3521*/
@@ -329,7 +329,19 @@ namespace TextBuilder_Tester
             StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"infra\");
             Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 2ms, Memory: 456 bytes
+            //Duration: 2ms, Memory: 504 bytes
+
+            //RETURN:
+            /*infrastructure - 3521*/
+        }
+
+        [Test]
+        public void Test09b_MatchDinamic_EndByWord_IgnoreCase()
+        {
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"inst\", TextOptions.IgnoreCase);
+            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+
+            //Duration: 2ms, Memory: 504 bytes
 
             //RETURN:
             /*infrastructure - 3521*/
@@ -349,7 +361,22 @@ namespace TextBuilder_Tester
 
             //RETURN: <Paulo/SP
         }
-                
+
+        [Test]
+        public void Test10b_MatchDynamic_PatternAndAndEndWordIgnoreCase()
+        {
+            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"married to*sil\", TextOptions.IgnoreCase);
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Ocorrencia não encontrada!"); }
+            else
+            { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+
+            //Duration: 2ms, Memory: 592 bytes
+
+            //RETURN: <Paulo/SP
+        }
+
         [Test]
         public void Test12_MatchDynamic_Number()
         {
@@ -433,63 +460,63 @@ namespace TextBuilder_Tester
 
         #region ▼ Snippets
 
-        //#region ► Snippet
+        #region ► Snippet
 
-        //[Test]
-        //public void Test13_SnippetFirst()
-        //{
-        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div*</div>");
-        //    Console.WriteLine(firstMatch);
+        [Test]
+        public void Test13_SnippetFirst()
+        {
+            string firstMatch = TextBuilder.ExtractFirstSnippet("<div*</div>");
+            Console.WriteLine(firstMatch);
 
-        //    //Duration: 1ms, Memory: 7032 bytes
-        //}
+            //Duration: 1ms, Memory: 7032 bytes
+        }
 
-        //[Test]
-        //public void Test14_SnippetFirstRegex()
-        //{
-        //    //string firstMatch = Regex.Match(html.SourceText, @"\<div(\s)id\=\'divPopupVertical\'((.|\n|\t)*?)divPopupVertical<\/div\>").Value;
-        //    //Console.WriteLine(firstMatch);
+        [Test]
+        public void Test14_SnippetFirstRegex()
+        {
+            //string firstMatch = Regex.Match(html.SourceText, @"\<div(\s)id\=\'divPopupVertical\'((.|\n|\t)*?)divPopupVertical<\/div\>").Value;
+            //Console.WriteLine(firstMatch);
 
-        //    //Duration: 7ms, Memory: 72144 bytes
-        //}
+            //Duration: 7ms, Memory: 72144 bytes
+        }
 
-        //[Test]
-        //public void Test15_SnippetFirstIdentifiedSnippet()
-        //{
-        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
-        //    Console.WriteLine(firstMatch);
+        [Test]
+        public void Test15_SnippetFirstIdentifiedSnippet()
+        {
+            string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
+            Console.WriteLine(firstMatch);
 
-        //    //Duration: 1ms, Memory: 5472 bytes
-        //}
+            //Duration: 1ms, Memory: 5472 bytes
+        }
 
-        //[Test]
-        //public void Test16_SnippetFirstIdentifiedAndConsiderApotrophesContent()
-        //{
-        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'", TextOptions.IgnoreInSingleQuotes);
-        //    Console.WriteLine(firstMatch);
+        [Test]
+        public void Test16_SnippetFirstIdentifiedAndConsiderApotrophesContent()
+        {
+            string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'", TextOptions.IgnoreInSingleQuotes);
+            Console.WriteLine(firstMatch);
 
-        //    //Duration: 1ms, Memory: 720 bytes
-        //}
+            //Duration: 1ms, Memory: 720 bytes
+        }
 
-        //#endregion
+        #endregion
 
-        //#region ► All Snippets
+        #region ► All Snippets
 
-        //[Test]
-        //public void Test17_SnippetsAll()
-        //{
-        //    string[] firstMatch = TextBuilder.ExtractSnippets("<div *</div>");
+        [Test]
+        public void Test17_SnippetsAll()
+        {
+            string[] firstMatch = TextBuilder.ExtractSnippets("<div *</div>");
 
-        //    int _index = 1;
-        //    foreach (string s in firstMatch)
-        //    {
-        //        Console.WriteLine($"Snippet #{_index++} -> {Environment.NewLine}{s}");
-        //    }
+            int _index = 1;
+            foreach (string s in firstMatch)
+            {
+                Console.WriteLine($"Snippet #{_index++} -> {Environment.NewLine}{s}");
+            }
 
-        //    //Duration: 1ms, Memory: 352 bytes
-        //}
+            //Duration: 1ms, Memory: 352 bytes
+        }
 
-        //#endregion
+        #endregion
 
         #endregion
 
