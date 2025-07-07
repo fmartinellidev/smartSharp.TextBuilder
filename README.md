@@ -29,6 +29,8 @@ TextBuilder é uma ferramenta estática desenvolvida para .NET 9 Core com C# 13,
 - Extração de blocos de texto entre marcações (ex: `<div>...</div>`)
 - Suporte a identificadores internos (ex: `id='divTemp'`)
 - Alternativa mais leve e legível que Regex
+- Reconhecimento de trechos semelhantes filho, ou seja, ele reconhece um trecho filho com as marcações semelhantes dentro de um trecho pai
+  (ex: `<div>esse é o trecho pai <div>esse é o trecho filho</div></div>`). Apesar da marcação final do filho estar antes e ser igual a do pai, a ferramenta reconhece e retorna `<div>esse é o trecho pai <div>esse é o trecho filho</div></div>`. 
 
 ---
 
