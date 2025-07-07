@@ -207,6 +207,7 @@ TextBuilder.ExtractFirstSnippet("<div*</div>");
 ```csharp
 TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
 ```
+Essa mesma busca poderia ser feita usando `"<div id='divTemp' *</div>"`, mas nesse nessa marcação a identificação `"id='divTemp'"` faz parte do padrão. Ao usa-la separada como identificador, ela se torna um fator independente de identificação, ou seja, o trecho só precisa ter essa identificação para ser reconhecido. Nesse caso tanto `<div id='divTemp'> exemplo numero 1 </div>` quanto `<div class='css' id='divTemp'> exemplo numero 1 </div>` seriam encontrados.
 
 🔸 Retorna: bloco `<div>` com `id='divTemp'`
 
