@@ -224,7 +224,8 @@ TextBuilder.ExtractSnippets("<div *</div>");
 
 ## ⚡ Benchmark de Desempenho
 
-Os resultados a seguir foram medidos em testes rodando no IIs do Visual Studio em tempo de debug, compilado para debug. Compilada para produção a ferramenta pode oferece um ganho significativo de desempenho.   
+Os resultados a seguir foram medidos em testes rodando no IIs do Visual Studio em tempo de debug, compilado para debug. 
+A versão definitiva compilada para produção irá oferecer um ganho de desempenho significativo.   
 
 | Cenário                          | Ferramenta     | Tempo Médio | Memória Média | Observações |
 |----------------------------------|----------------|-------------|----------------|-------------|
