@@ -224,7 +224,7 @@ TextBuilder.ExtractSnippets("<div *</div>");
 
 ## ⚡ Benchmark de Desempenho
 
-Em tempo de runtime e publicado, esses resultados podem oferecer mais desempenhos, pois os testes foram medidos em tempo de debug, compilado para debug, em um computador de desenvolvimento. Em um servidor de clould compilada para produção oferecerá um ganho significativo de desempenho.   
+Os resultados a seguir foram medidos em testes rodando no IIs do Visual Studio em tempo de debug, compilado para debug. Compilada para produção a ferramenta pode oferece um ganho significativo de desempenho.   
 
 | Cenário                          | Ferramenta     | Tempo Médio | Memória Média | Observações |
 |----------------------------------|----------------|-------------|----------------|-------------|
