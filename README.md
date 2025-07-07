@@ -37,9 +37,6 @@ TextBuilder é uma ferramenta estática desenvolvida para .NET 9 Core com C# 13,
 
 ```csharp
 
-[SetUp]
-public void Setup()
-{
     html = @"<head>
                                 <meta charset='UTF-8'>
                                 <meta name='viewport' content='width=device-width, initial-scale=1.0'>
@@ -130,32 +127,6 @@ public void Setup()
                    24 (twenty-four) months, counted from the date of the public launch of the subdivision, 
                    which was carried out on December 5, 2015, and may be anticipated at any time or extended 
                    for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.";
-                
-    GC.Collect();
-    GC.WaitForPendingFinalizers();
-    GC.Collect();
-
-    // Medição de memória antes
-    _memoriaAntes = GC.GetTotalMemory(true);
-
-    // Inicia o cronômetro
-    _stopwatch = Stopwatch.StartNew();
-}
-
-[TearDown]
-public void TearDown()
-{
-    _stopwatch.Stop();
-
-    long memoriaDepois = GC.GetTotalMemory(true);
-    long memoriaConsumida = memoriaDepois - _memoriaAntes;
-
-    //_stopwatch.ElapsedMilliseconds.Should().BeLessThan(500, "o método deve ser rápido")
-    //memoriaConsumida.Should().BeLessThan(1024 * 1024, "o método não deve consumir muita memória"); // 1MB
-
-    Console.WriteLine($"Tempo de execução: {_stopwatch.ElapsedMilliseconds} ms");
-    Console.WriteLine($"Memória consumida: {memoriaConsumida} bytes");
-}
 
 ```
 
