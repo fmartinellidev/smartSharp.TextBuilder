@@ -147,10 +147,10 @@ namespace TextBuilder_Tester
         [Test]
         public void Test01_Match()
         {
-           StringAndPosition firstMatch = TextBuilder.Match(text,"Marie Doe|John Doe");
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+           StringAndPosition firstMatch = TextBuilder.Match(text,"Marie Doe||Jane Doe||Jack||John Doe");
+            Console.WriteLine(firstMatch.Text);
 
-            //Duration: 1ms, Memory: 352 bytes
+            //Duration: 2ms, Memory: 352 bytes
 
             //RETURN: John Doe - 842
         }
@@ -158,10 +158,10 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02_Match_IgnoreSingleQuotes()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "John Doe|Marie Doe", TextOptions.IgnoreInSingleQuotes);
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            StringAndPosition firstMatch = TextBuilder.Match(text, "John Doe||Marie Doe", TextBuilder.ParmsIgnoreInQuotes);
+            Console.WriteLine(firstMatch.Text);
 
-            //Duration: 1ms, Memory: 456 bytes
+            //Duration: 2ms, Memory: 352 bytes
 
             //RETURN: Marie Doe - 861
         }
@@ -169,12 +169,12 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02b_Match_IgnoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "john doe|marie doe", TextOptions.IgnoreCase);
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            StringAndPosition firstMatch = TextBuilder.Match(text, "john doe|marie doe", TextBuilder.ParmsIgnoreCase);
+            Console.WriteLine(firstMatch.Text);
 
-            //Duration: 2ms, Memory: 400 bytes
+            //Duration: 8ms, Memory: 352 bytes
 
-            //RETURN: John Doe - 842
+            //RETURN: John Doe
         }
 
         #endregion
@@ -185,9 +185,9 @@ namespace TextBuilder_Tester
         public void Test03_MatchPattern_PatternInStart()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, @"*residential");
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            Console.WriteLine(firstMatch.Text);
 
-            //Duration: 1ms, Memory: 7280 bytes
+            //Duration: 2ms, Memory: 7264 bytes
 
 
             //RETURN:
@@ -223,12 +223,12 @@ namespace TextBuilder_Tester
         public void Test04_MatchPattern_PatternInMiddle()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "Name*Jard*.");
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            Console.WriteLine(firstMatch.Text);
 
-            //Duration: 1ms, Memory: 688 bytes
+            //Duration: 2ms, Memory: 656 bytes
 
             //RETURN:
-            // Name: Jardim Barcelona -2792 */
+            // Name: Jardim Barcelona, cidade de Araraquara/SP. - 2792 */
 
         }
 
@@ -243,10 +243,10 @@ namespace TextBuilder_Tester
             }
             else
             {
-                Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+                Console.WriteLine(firstMatch.Text);
             }
 
-            //Duration: 1ms, Memory: 2144 bytes
+            //Duration: 3ms, Memory: 2112 bytes
 
             //RETURN:
             /*B.3. Deadline for completion of infrastructure works:
@@ -255,16 +255,16 @@ namespace TextBuilder_Tester
                            for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.*/
 
         }
-
+        
         [Test]
         public void Test06_MatchPattern_MoreThanOnePattern()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "Name:*cidade de *.");
 
-            if (firstMatch == null) { Console.WriteLine("Not match found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
 
-            //Duration: 1ms, Memory: 688 bytes
+            //Duration: 2ms, Memory: 656 bytes
 
             //RETURN:
             // Name: Jardim Barcelona, cidade de Araraquara/SP. */
@@ -275,184 +275,187 @@ namespace TextBuilder_Tester
         public void Test07_MatchPattern_PatternWithOrCondition()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack");
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 2ms, Memory: 456 bytes
 
             //RETURN:
-            /*infrastructure - 3521*/
+            /*married with 'John*/
         }
 
         [Test]
         public void Test07b_MatchPattern_PatternWithOrCondition()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack*Mcan|Albert|Towner");
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack* Mcan| Albert| Towner");
+            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
 
-            //Duration: 2ms, Memory: 608 bytes
+            //Duration: 2ms, Memory: 456 bytes
 
             //RETURN:
-            /*infrastructure - 3521*/
+            /*married with 'John Doe Towner*/
         }
 
         [Test]
         public void Test07c_MatchPattern_PatternWithOrConditionIgnoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack", TextOptions.IgnoreCase);
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack", TextBuilder.ParmsIgnoreCase);
+            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
 
-            //Duration: 2ms, Memory: 504 bytes
+            //Duration: 9ms, Memory: 456 bytes
 
             //RETURN:
-            /*infrastructure - 3521*/
+            /*married with 'John*/
         }
 
         #endregion
 
         #region ► Dynamic Match
 
-        [Test]
-        public void Test08_MatchDynamic_StartByWord()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"\cture");
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+        //[Test]
+        //public void Test08_MatchDynamic_StartByWord()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"\cture");
+        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 2ms, Memory: 504 bytes
+        //    //Duration: 2ms, Memory: 504 bytes
 
-            //RETURN:
-            /*infrastructure - 3521*/
-        }
+        //    //RETURN:
+        //    /*infrastructure - 3521*/
+        //}
 
-        [Test]
-        public void Test09_MatchDinamic_EndByWord()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"infra\");
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+        //[Test]
+        //public void Test09_MatchDinamic_EndByWord()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"infra\");
+        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 2ms, Memory: 504 bytes
+        //    //Duration: 2ms, Memory: 504 bytes
 
-            //RETURN:
-            /*infrastructure - 3521*/
-        }
+        //    //RETURN:
+        //    /*infrastructure - 3521*/
+        //}
 
-        [Test]
-        public void Test09b_MatchDinamic_EndByWord_IgnoreCase()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"inst\", TextOptions.IgnoreCase);
-            Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+        //[Test]
+        //public void Test09b_MatchDinamic_EndByWord_IgnoreCase()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"inst\", TextOptions.IgnoreCase);
+        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
 
-            //Duration: 2ms, Memory: 504 bytes
+        //    //Duration: 2ms, Memory: 504 bytes
 
-            //RETURN:
-            /*infrastructure - 3521*/
-        }
+        //    //RETURN:
+        //    /*infrastructure - 3521*/
+        //}
 
-        [Test]
-        public void Test10_MatchDynamic_PatternAndAndEndWord()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"married to*Sil\");
+        //[Test]
+        //public void Test10_MatchDynamic_PatternAndAndEndWord()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"married to*Sil\");
 
-            if (firstMatch.Empty)
-            { Console.WriteLine("Ocorrencia não encontrada!"); }
-            else
-            { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        //    if (firstMatch.Empty)
+        //    { Console.WriteLine("Ocorrencia não encontrada!"); }
+        //    else
+        //    { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-            //Duration: 2ms, Memory: 592 bytes
+        //    //Duration: 2ms, Memory: 592 bytes
 
-            //RETURN: <Paulo/SP
-        }
+        //    //RETURN: <Paulo/SP
+        //}
 
-        [Test]
-        public void Test10b_MatchDynamic_PatternAndAndEndWordIgnoreCase()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"married to*sil\", TextOptions.IgnoreCase);
+        //[Test]
+        //public void Test10b_MatchDynamic_PatternAndAndEndWordIgnoreCase()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"married to*sil\", TextOptions.IgnoreCase);
 
-            if (firstMatch.Empty)
-            { Console.WriteLine("Ocorrencia não encontrada!"); }
-            else
-            { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        //    if (firstMatch.Empty)
+        //    { Console.WriteLine("Ocorrencia não encontrada!"); }
+        //    else
+        //    { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-            //Duration: 2ms, Memory: 592 bytes
+        //    //Duration: 2ms, Memory: 592 bytes
 
-            //RETURN: <Paulo/SP
-        }
+        //    //RETURN: <Paulo/SP
+        //}
 
-        [Test]
-        public void Test12_MatchDynamic_Number()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"#.#.#-#");
+        //[Test]
+        //public void Test12_MatchDynamic_Number()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"#.#.#-#");
 
-            if (firstMatch == null) { Console.WriteLine("Not match found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        //    if (firstMatch == null) { Console.WriteLine("Not match found!"); }
+        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-            //Duration: 1ms, Memory: 456 bytes
+        //    //Duration: 1ms, Memory: 456 bytes
 
-            //RETURN:
-            // Name: Jardim Barcelona, cidade de Araraquara/SP. */
+        //    //RETURN:
+        //    // Name: Jardim Barcelona, cidade de Araraquara/SP. */
 
-        }
+        //}
 
-        [Test]
-        public void Test13_MatchDynamic_NumberAndLitteral()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"Area: #,#.#");
+        //[Test]
+        //public void Test13_MatchDynamic_NumberAndLitteral()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"Area: #,#.#");
 
-            if (firstMatch == null) { Console.WriteLine("Not match found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        //    if (firstMatch == null) { Console.WriteLine("Not match found!"); }
+        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-            //Duration: 1ms, Memory: 688 bytes
+        //    //Duration: 1ms, Memory: 688 bytes
 
-            //RETURN:
-            // Area: 315,467.00 - 2872
+        //    //RETURN:
+        //    // Area: 315,467.00 - 2872
 
-        }
+        //}
 
-        [Test]
-        public void Test14_MatchDynamic_Letters()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "@,");
+        //[Test]
+        //public void Test14_MatchDynamic_Letters()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "@,");
 
-            if (firstMatch == null) { Console.WriteLine("Not match found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        //    if (firstMatch == null) { Console.WriteLine("Not match found!"); }
+        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-            //Duration: 2ms, Memory: 384 bytes
+        //    //Duration: 2ms, Memory: 384 bytes
 
-            //RETURN:
-            // LTDA,- 291
+        //    //RETURN:
+        //    // LTDA,- 291
 
-        }
+        //}
 
-        [Test]
-        public void Test15_MatchDynamic_WordSeparator()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "Ipanema_in");
+        //[Test]
+        //public void Test15_MatchDynamic_WordSeparator()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "Ipanema_in");
 
-            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        //    if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-            //Duration: 2ms, Memory: 456 bytes
+        //    //Duration: 2ms, Memory: 456 bytes
 
-            //RETURN:
-            // Ipanema, in - 514
+        //    //RETURN:
+        //    // Ipanema, in - 514
 
-        }
+        //}
 
-        [Test]
-        public void Test16_MatchDynamic_WordSeparator()
-        {
-            StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "Table_A");
+        //[Test]
+        //public void Test16_MatchDynamic_WordSeparator()
+        //{
+        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "Table_A");
 
-            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        //    if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-            //Duration: 2ms, Memory: 656 bytes
+        //    //Duration: 2ms, Memory: 656 bytes
 
-            //RETURN:
-            /* Table
+        //    //RETURN:
+        //    /* Table
 
-            A - 188 */
+        //    A - 188 */
 
-        }
+        //}
 
         #endregion
 
@@ -462,14 +465,14 @@ namespace TextBuilder_Tester
 
         #region ► Snippet
 
-        [Test]
-        public void Test13_SnippetFirst()
-        {
-            string firstMatch = TextBuilder.ExtractFirstSnippet("<div*</div>");
-            Console.WriteLine(firstMatch);
+        //[Test]
+        //public void Test13_SnippetFirst()
+        //{
+        //    string firstMatch = TextBuilder.ExtractFirstSnippet(text,"joh*oe");
+        //    Console.WriteLine(firstMatch);
 
-            //Duration: 1ms, Memory: 7032 bytes
-        }
+        //    //Duration: 1ms, Memory: 7032 bytes
+        //}
 
         [Test]
         public void Test14_SnippetFirstRegex()
@@ -480,23 +483,23 @@ namespace TextBuilder_Tester
             //Duration: 7ms, Memory: 72144 bytes
         }
 
-        [Test]
-        public void Test15_SnippetFirstIdentifiedSnippet()
-        {
-            string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
-            Console.WriteLine(firstMatch);
+        //[Test]
+        //public void Test15_SnippetFirstIdentifiedSnippet()
+        //{
+        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
+        //    Console.WriteLine(firstMatch);
 
-            //Duration: 1ms, Memory: 5472 bytes
-        }
+        //    //Duration: 1ms, Memory: 5472 bytes
+        //}
 
-        [Test]
-        public void Test16_SnippetFirstIdentifiedAndConsiderApotrophesContent()
-        {
-            string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'", TextOptions.IgnoreInSingleQuotes);
-            Console.WriteLine(firstMatch);
+        //[Test]
+        //public void Test16_SnippetFirstIdentifiedAndConsiderApotrophesContent()
+        //{
+        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'", TextOptions.IgnoreInSingleQuotes);
+        //    Console.WriteLine(firstMatch);
 
-            //Duration: 1ms, Memory: 720 bytes
-        }
+        //    //Duration: 1ms, Memory: 720 bytes
+        //}
 
         #endregion
 
@@ -505,13 +508,13 @@ namespace TextBuilder_Tester
         [Test]
         public void Test17_SnippetsAll()
         {
-            string[] firstMatch = TextBuilder.ExtractSnippets("<div *</div>");
+            //string[] firstMatch = TextBuilder.ExtractSnippets("<div *</div>");
 
-            int _index = 1;
-            foreach (string s in firstMatch)
-            {
-                Console.WriteLine($"Snippet #{_index++} -> {Environment.NewLine}{s}");
-            }
+            //int _index = 1;
+            //foreach (string s in firstMatch)
+            //{
+            //    Console.WriteLine($"Snippet #{_index++} -> {Environment.NewLine}{s}");
+            //}
 
             //Duration: 1ms, Memory: 352 bytes
         }
