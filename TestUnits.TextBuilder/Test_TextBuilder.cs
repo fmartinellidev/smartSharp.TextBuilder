@@ -1,10 +1,5 @@
 ﻿using SmartSharp.TextBuilder;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
-using FluentAssertions;
-using System;
-using System.Xml.Linq;
-using NUnit.Framework.Interfaces;
 
 namespace TextBuilder_Tester
 {
@@ -14,6 +9,7 @@ namespace TextBuilder_Tester
 
         public string text;
         public string html;
+        public string tinyText;
 
         private Stopwatch _stopwatch;
         private long _memoriaAntes;
@@ -34,10 +30,10 @@ namespace TextBuilder_Tester
                                    <section id='popup'>
                                         <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
                                             <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='</div>header'>
+                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
                                                     <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
                                                     <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'></div>
+                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
                                                     <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
                                                     <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
                                                     <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
@@ -66,9 +62,9 @@ namespace TextBuilder_Tester
 
                       A. PARTIES
                       A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
-                           with the CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista, nº 2281, room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance with its Articles of Incorporation, in the capacity 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance with its Articles of incorporation, in the capacity 
                            of Owner and Developer, hereinafter simply referred to as SELLER.
                       A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
                            CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
@@ -111,7 +107,21 @@ namespace TextBuilder_Tester
                            24 (twenty-four) months, counted from the date of the public launch of the subdivision, 
                            which was carried out on December 5, 2015, and may be anticipated at any time or extended 
                            for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.";
-                        
+
+            tinyText = @"A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private action law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.";
+
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
@@ -158,10 +168,10 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02_Match_IgnoreSingleQuotes()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "John Doe||Marie Doe", TextBuilder.ParmsIgnoreInQuotes);
+            StringAndPosition firstMatch = TextBuilder.Match(text, "John Doe||Marie Doe", TextBuilder.ParamsIgnoreInQuotes);
             Console.WriteLine(firstMatch.Text);
 
-            //Duration: 2ms, Memory: 352 bytes
+            //Duration: 3ms, Memory: 352 bytes
 
             //RETURN: Marie Doe - 861
         }
@@ -169,10 +179,10 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02b_Match_IgnoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "john doe|marie doe", TextBuilder.ParmsIgnoreCase);
+            StringAndPosition firstMatch = TextBuilder.Match(text, "john doe||marie doe");
             Console.WriteLine(firstMatch.Text);
 
-            //Duration: 8ms, Memory: 352 bytes
+            //Duration: 2ms, Memory: 352 bytes
 
             //RETURN: John Doe
         }
@@ -187,7 +197,7 @@ namespace TextBuilder_Tester
             StringAndPosition firstMatch = TextBuilder.Match(text, @"*residential");
             Console.WriteLine(firstMatch.Text);
 
-            //Duration: 2ms, Memory: 7264 bytes
+            //Duration: 2ms, Memory: 7296 bytes
 
 
             //RETURN:
@@ -221,6 +231,21 @@ namespace TextBuilder_Tester
 
         [Test]
         public void Test04_MatchPattern_PatternInMiddle()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "J*ner");
+
+            if (firstMatch.Empty) { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
+
+            //Duration: 2ms, Memory: 456 bytes
+
+            //RETURN:
+            //John Doe Towner*/
+
+        }
+
+        [Test]
+        public void Test04b_MatchPattern_PatternInMiddle()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "Name*Jard*.");
             Console.WriteLine(firstMatch.Text);
@@ -264,7 +289,7 @@ namespace TextBuilder_Tester
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
-            //Duration: 2ms, Memory: 656 bytes
+            //Duration: 3ms, Memory: 656 bytes
 
             //RETURN:
             // Name: Jardim Barcelona, cidade de Araraquara/SP. */
@@ -272,20 +297,68 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test07_MatchPattern_PatternWithOrCondition()
+        public void Test07_MatchPattern_PatternWithOrCondition_wrong_OR_use()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack");
+            /*Wrong 'OR" condition use. Did put '@' after wildcard and before 'OR' char condition. 
+             * So the '@' is alone and it is a more one option in condition and not a char linked 
+             * of email servers of the 'OR' condition.*/
+
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"email*@|hotmail.com|gmail.com|yahoo.com");
+            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
+
+            //Duration: 2ms, Memory: 352 bytes
+
+            //RETURN:
+            /*email marie@*/
+        }
+
+        //[Test]
+        //public void Test07a_MatchPattern_PatternWithOrCondition()
+        //{
+        //    /* Another wrong 'OR' use.
+        //     * Not use it to start, end pattern and after wildcard '*'
+        //     */
+        //    StringAndPosition firstMatch = TextBuilder.Match(text, @"email*|@hotmail.com|@gmail.com|@yahoo.com");
+        //    if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+        //    else { Console.WriteLine(firstMatch.Text); }
+
+        //    //Duration: 2ms, Memory: 456 bytes
+
+        //    //RETURN:
+        //    /*Invalid use of 'OR' char('|')! Not use it to start, end pattern and after wildcard '*'*/
+        //}
+
+        [Test]
+        public void Test07b_MatchPattern_PatternWithOrCondition()
+        {
+            /*This test is using right the 'OR' condition.*/
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"email*@hotmail.com|@gmail.com|@yahoo.com");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 2ms, Memory: 456 bytes
 
             //RETURN:
-            /*married with 'John*/
+            /*email marie@gmail.com*/
         }
 
         [Test]
-        public void Test07b_MatchPattern_PatternWithOrCondition()
+        public void Test07c_MatchPattern_PatternWithOrCondition()
+        {
+            /*Is sure exist a more better form of do This pattern*/
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"email*.com|.com.br");
+            if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
+
+            //Duration: 2ms, Memory: 456 bytes
+
+            //RETURN:
+            /*email marie@gmail.com*/
+        }
+
+        [Test]
+        public void Test07d_MatchPattern_PatternWithOrCondition()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack* Mcan| Albert| Towner");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
@@ -298,13 +371,13 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test07c_MatchPattern_PatternWithOrConditionIgnoreCase()
+        public void Test07e_MatchPattern_PatternWithOrConditionIgnoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack", TextBuilder.ParmsIgnoreCase);
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
-            //Duration: 9ms, Memory: 456 bytes
+            //Duration: 3ms, Memory: 456 bytes
 
             //RETURN:
             /*married with 'John*/
@@ -314,148 +387,220 @@ namespace TextBuilder_Tester
 
         #region ► Dynamic Match
 
-        //[Test]
-        //public void Test08_MatchDynamic_StartByWord()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"\cture");
-        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+        [Test]
+        public void Test08a_Match_SeparatorWord_without_separator()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(tinyText, "act");
 
-        //    //Duration: 2ms, Memory: 504 bytes
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-        //    //RETURN:
-        //    /*infrastructure - 3521*/
-        //}
+            //Duration: 2ms, Memory: 384 bytes
 
-        //[Test]
-        //public void Test09_MatchDinamic_EndByWord()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"infra\");
-        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            //RETURN: act - 108
+            //Result is a piece of "reactor" word in tinyText. Phrase in text: "private law company, duly re[act]or registered"
+        }
 
-        //    //Duration: 2ms, Memory: 504 bytes
+        [Test]
+        public void Test08b_Match_SeparatorWord_in_start()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(tinyText, "_act", TextBuilder.ParamsDynamicChars);
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-        //    //RETURN:
-        //    /*infrastructure - 3521*/
-        //}
+            //Duration: 2ms, Memory: 384 bytes
 
-        //[Test]
-        //public void Test09b_MatchDinamic_EndByWord_IgnoreCase()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"inst\", TextOptions.IgnoreCase);
-        //    Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position);
+            //RETURN: act - 289
+            /*Return occurrence is a part of "action" word in tinyText. Phrase in text: "Avenida José Ferreira 
+            Batista react, nº 2281, [act]ion room 02"*/
+        }
 
-        //    //Duration: 2ms, Memory: 504 bytes
+        [Test]
+        public void Test08b_Match_SeparatorWord_in_start_CutStartChar()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match( tinyText, 
+                                                 "_act", 
+                                                 0,
+                                                 1,
+                                                 TextBuilder.ParamsDynamicChars);
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-        //    //RETURN:
-        //    /*infrastructure - 3521*/
-        //}
+            //Duration: 2ms, Memory: 384 bytes
 
-        //[Test]
-        //public void Test10_MatchDynamic_PatternAndAndEndWord()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"married to*Sil\");
+            //RETURN: act - 289
+            /*Return occurrence is a part of "action" word in tinyText. Phrase in text: "Avenida José Ferreira 
+            Batista react, nº 2281, [act]ion room 02"*/
+        }
 
-        //    if (firstMatch.Empty)
-        //    { Console.WriteLine("Ocorrencia não encontrada!"); }
-        //    else
-        //    { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        [Test]
+        public void Test08c_Match_SeparatorWord_separator_in_end()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(tinyText, "act_", TextBuilder.ParamsDynamicChars);
 
-        //    //Duration: 2ms, Memory: 592 bytes
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-        //    //RETURN: <Paulo/SP
-        //}
+            //Duration: 2ms, Memory: 384 bytes
 
-        //[Test]
-        //public void Test10b_MatchDynamic_PatternAndAndEndWordIgnoreCase()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"married to*sil\", TextOptions.IgnoreCase);
+            //RETURN: act - 275
+            /*Return occurrence is a part of "react" word in tinyText. Phrase in text: " Avenida José Ferreira 
+            Batista re[act], nº 2281"*/
+        }
 
-        //    if (firstMatch.Empty)
-        //    { Console.WriteLine("Ocorrencia não encontrada!"); }
-        //    else
-        //    { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        [Test]
+        public void Test08d_Match_SeparatorWord_separator_start_end()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(tinyText, "_act_", TextBuilder.ParamsDynamicChars);
 
-        //    //Duration: 2ms, Memory: 592 bytes
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-        //    //RETURN: <Paulo/SP
-        //}
+            //Duration: 2ms, Memory: 352 bytes
 
-        //[Test]
-        //public void Test12_MatchDynamic_Number()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"#.#.#-#");
+            //RETURN: act - 413
+            //Return is exactly word "act" in tinyText. Phrase in text: "represented in this [act] in accordance"
+        }
 
-        //    if (firstMatch == null) { Console.WriteLine("Not match found!"); }
-        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        [Test]
+        public void Test08d_Match_SeparatorWord_separator_start_end_CutStartEndChar()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(tinyText, "_act_",0, 1, 1, TextBuilder.ParamsDynamicChars);
 
-        //    //Duration: 1ms, Memory: 456 bytes
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-        //    //RETURN:
-        //    // Name: Jardim Barcelona, cidade de Araraquara/SP. */
+            //Duration: 2ms, Memory: 352 bytes
 
-        //}
+            //RETURN: act - 413
+            //Return is exactly word "act" in tinyText. Phrase in text: "represented in this [act] in accordance"
+        }
 
-        //[Test]
-        //public void Test13_MatchDynamic_NumberAndLitteral()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, @"Area: #,#.#");
+        [Test]
+        public void Test09a_MatchDynamic_startLinkByWord()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "~on", TextBuilder.ParamsDynamicChars);
 
-        //    if (firstMatch == null) { Console.WriteLine("Not match found!"); }
-        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
 
-        //    //Duration: 1ms, Memory: 688 bytes
+            //Duration: 2ms, Memory: 352 bytes
 
-        //    //RETURN:
-        //    // Area: 315,467.00 - 2872
+            //RETURN:
+            /*action*/
+        }
 
-        //}
+        [Test]
+        public void Test09b_MatchDynamic_startLinkByWord()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(tinyText, "~act", TextBuilder.ParamsDynamicChars);
 
-        //[Test]
-        //public void Test14_MatchDynamic_Letters()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "@,");
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
 
-        //    if (firstMatch == null) { Console.WriteLine("Not match found!"); }
-        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            //Duration: 2ms, Memory: 352 bytes
 
-        //    //Duration: 2ms, Memory: 384 bytes
+            //RETURN:
+            /*action*/
+        }
 
-        //    //RETURN:
-        //    // LTDA,- 291
+        [Test]
+        public void Test09c_MatchDynamic_EndLinkByWord()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "act~", TextBuilder.ParamsDynamicChars);
 
-        //}
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
 
-        //[Test]
-        //public void Test15_MatchDynamic_WordSeparator()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "Ipanema_in");
+            //Duration: 3ms, Memory: 352 bytes
 
-        //    if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
-        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            //RETURN:
+            /*registered*/
+        }
 
-        //    //Duration: 2ms, Memory: 456 bytes
+        [Test]
+        public void Test09d_MatchDynamic_MiddleLinkByWord()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "~tri~", TextBuilder.ParamsDynamicChars);
 
-        //    //RETURN:
-        //    // Ipanema, in - 514
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-        //}
+            //Duration: 3ms, Memory: 352 bytes
 
-        //[Test]
-        //public void Test16_MatchDynamic_WordSeparator()
-        //{
-        //    StringAndPosition firstMatch = TextBuilder.MatchDynamic(text, "Table_A");
+            //RETURN:
+            /*District - 549*/
+        }
 
-        //    if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
-        //    else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+        [Test]
+        public void Test10a_MatchDynamic_NumbersChar()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "###.###.###-##", TextBuilder.ParamsDynamicChars);
 
-        //    //Duration: 2ms, Memory: 656 bytes
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
 
-        //    //RETURN:
-        //    /* Table
+            //Duration: 2ms, Memory: 456 bytes
 
-        //    A - 188 */
+            //RETURN:
+            /*675.019.610-18 - 984*/
+        }
 
-        //}
+        [Test]
+        public void Test10b_MatchDynamic_StartNumbersChar()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "nº####", TextBuilder.ParamsDynamicChars);
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+
+            //Duration: 2ms, Memory: 352 bytes
+
+            //RETURN:
+            /*nº2281 - 491*/
+        }
+
+        [Test]
+        public void Test10c_MatchDynamic_EndNumbersChar()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "B.#.", TextBuilder.ParamsDynamicChars);
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+
+            //Duration: 2ms, Memory: 352 bytes
+
+            //RETURN:
+            /*B.1. - 2016*/
+        }
+
+        [Test]
+        public void Test11_MatchDynamic_DynmaicsAndWildcard()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "Road System: ##*m²", TextBuilder.ParamsDynamicChars);
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+
+            //Duration: 3ms, Memory: 592 bytes
+
+            //RETURN:
+            /*Road System: 91,579.16 m² - 3264*/
+        }
 
         #endregion
 
@@ -463,62 +608,147 @@ namespace TextBuilder_Tester
 
         #region ▼ Snippets
 
-        #region ► Snippet
-
-        //[Test]
-        //public void Test13_SnippetFirst()
-        //{
-        //    string firstMatch = TextBuilder.ExtractFirstSnippet(text,"joh*oe");
-        //    Console.WriteLine(firstMatch);
-
-        //    //Duration: 1ms, Memory: 7032 bytes
-        //}
-
         [Test]
-        public void Test14_SnippetFirstRegex()
+        public void Test13_Snippet()
         {
-            //string firstMatch = Regex.Match(html.SourceText, @"\<div(\s)id\=\'divPopupVertical\'((.|\n|\t)*?)divPopupVertical<\/div\>").Value;
-            //Console.WriteLine(firstMatch);
+            StringAndPosition snippetMatch = TextBuilder.Snippet(html, @"<div*</div>");
+            
+            if(snippetMatch.Empty)
+            {  Console.WriteLine("Snippet not found!"); }
+            else {  Console.WriteLine(snippetMatch.Text); }
 
-            //Duration: 7ms, Memory: 72144 bytes
+            //Duration: 2ms, Memory: 7216 bytes
+
+            /*RETURN:
+             <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+                                                    <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
+                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'></div>
+                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+                                                </div>
+                                            </div>
+                                        divPopupVertical</div>
+             */
         }
 
-        //[Test]
-        //public void Test15_SnippetFirstIdentifiedSnippet()
-        //{
-        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
-        //    Console.WriteLine(firstMatch);
+        [Test]
+        public void Test15_SnippetID()
+        {
+            StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div *</div>", "id='divTemp'");
+            
+            if (snippetMatch.Empty)
+            { Console.WriteLine("Snippet not found!"); }
+            else { Console.WriteLine(snippetMatch.Text); }
 
-        //    //Duration: 1ms, Memory: 5472 bytes
-        //}
+            //Duration: 2ms, Memory: 5616 bytes
+        }
 
-        //[Test]
-        //public void Test16_SnippetFirstIdentifiedAndConsiderApotrophesContent()
-        //{
-        //    string firstMatch = TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'", TextOptions.IgnoreInSingleQuotes);
-        //    Console.WriteLine(firstMatch);
+        [Test]
+        public void Test16_Snippet_IgnoreApotrophesContent()
+        {
+            StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div *</div>", "divTemp", TextBuilder.ParamsIgnoreInQuotes);
 
-        //    //Duration: 1ms, Memory: 720 bytes
-        //}
+            if (snippetMatch.Empty)
+            { Console.WriteLine("Snippet not found!"); }
+            else { Console.WriteLine(snippetMatch.Text); }
+
+            //Duration: 2ms, Memory: 3664 bytes
+
+            /*RETURN:
+             * <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+                                                </div>
+             */
+        }
+
+        [Test]
+        public void Test17_Snippet_IgnoreCase()
+        {
+            StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div *</div>", "'divtemp'");
+
+            if (snippetMatch.Empty)
+            { Console.WriteLine("Snippet not found!"); }
+            else { Console.WriteLine(snippetMatch.Text); }
+
+            //Duration: 2ms, Memory: 5616 bytes
+
+            /*RETURN:
+             * <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+                                                </div>
+             */
+        }
 
         #endregion
 
-        #region ► All Snippets
+        #region ▼ Models
+
+        #region Repalce
 
         [Test]
-        public void Test17_SnippetsAll()
+        public void Test22_Replace()
         {
-            //string[] firstMatch = TextBuilder.ExtractSnippets("<div *</div>");
+            string replaceMatch = TextBuilder.Replace(tinyText, "Joh*Towner", "Bruce Banner");
+            Console.WriteLine(replaceMatch);
 
-            //int _index = 1;
-            //foreach (string s in firstMatch)
-            //{
-            //    Console.WriteLine($"Snippet #{_index++} -> {Environment.NewLine}{s}");
-            //}
+            //Duration: 2ms, Memory: 5968 bytes
 
-            //Duration: 1ms, Memory: 352 bytes
+            /*RETURN: 
+             * A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance with its Articles of Incorporation, in the capacity 
+                           of Owner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'Bruce Banner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Silva, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
         }
 
+        [Test]
+        public void Test23_Replace_with_count()
+        {
+            string replaceMatch = TextBuilder.Replace(tinyText,
+                                         "D~Towner", 
+                                         "Doe Silva",
+                                         2);
+            Console.WriteLine(replaceMatch);
+
+            //Duration: 2ms, Memory: 5968 bytes
+
+            /*RETURN: 
+             * A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance with its Articles of Incorporation, in the capacity 
+                           of Owner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'Bruce Banner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Silva, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+        
         #endregion
 
         #endregion
