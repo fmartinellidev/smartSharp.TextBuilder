@@ -1,8 +1,7 @@
 ﻿using System.Buffers;
-using System.Linq;
+using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace SmartSharp.TextBuilder
@@ -51,18 +50,33 @@ namespace SmartSharp.TextBuilder
         {
             #region Properties
 
-            private Span<char> source;
+            private ReadOnlySpan<char> source;
             private ReadOnlySpan<int> positions;
             private ReadOnlySpan<int> lengths;
+            private ReadOnlySpan<int> dynamicChar;
+            public int DynamicCharPosition(int index)
+            {
+                if ((uint)index >= (uint)count) // fast bounds check
+                { throw new IndexOutOfRangeException(); }
+                return dynamicChar[index] - positions[index];
+            }
+
             private int count;
-            public bool SplitInFirstChar { get; }
-            public bool SplitInLastChar { get; }
+            public bool WildcardInFirstChar { get; }
+            public bool WildcardInLastChar { get; }
             public int Count => count;
             public bool Empty => count == 0;
 
             public bool ContainsWildcards(int index)
             {
-                return this[index].IndexOf('*') != -1;
+                int pos = this[index].IndexOf('*');
+
+                if(  pos == -1 || 
+                    (pos ==0 && index==0) || 
+                     pos == this[index].Length && index == positions.Length) 
+                {  return false; }
+
+                return true;
             }
 
             public bool ContainsCompleteWord(int index)
@@ -74,66 +88,94 @@ namespace SmartSharp.TextBuilder
 
             #region Constructor
 
-            public PatternsToMatch(Span<char> text, char splitChar = '\0', char ignoreChar = '\0')
+            public PatternsToMatch(ReadOnlySpan<char> text, char splitChar = '\0', char ignoreChar = '\0')
             {
                 source = text;
                 Span<int> _positions = stackalloc int[160];
                 Span<int> _lengths = stackalloc int[160];
-                                
+                Span<int> _dynamic = stackalloc int[160];
+                _dynamic.Fill(-1);
+
                 if (source.Length == 0) { count = 0; return; }
+
+                #region ** Exception : Invlaid pattern
+
+                if (splitChar != '*')
+                {
+                    if (text[0] == splitChar || text[text.Length - 1] == splitChar)
+                    { throw new InvalidOperationException("Can't use splitChar to start or end pattern!"); }
+                }
+                else if (splitChar == '\0')
+                {
+                    if (text[0] == '|' || text[text.Length - 1] == '|')
+                    { throw new InvalidOperationException("Can't use 'OR' char to start or end pattern!"); }
+                }
+
+                #endregion
 
                 int pos = 0, idx = 0;
                 bool ignoreMode = false;
-                                
-                while (pos < source.Length)
+                int start = 0;
+
+                for (; pos < source.Length; pos++)
                 {
-                    int start = pos;
-                    while (pos < source.Length)
+                    char c = source[pos];
+
+                    if (c == ignoreChar) ignoreMode = !ignoreMode;
+                    else if (!ignoreMode)
                     {
-                        char c = source[pos];
+                        #region ? Is a double 'OR' split
+                        if (splitChar == '\0' && c == '|' && pos + 1 < source.Length)
+                        { if (source[pos + 1] == '|') c = splitChar; }
+                        #endregion
 
-                        if (c == ignoreChar)
-                            ignoreMode = !ignoreMode;
-                        else if (!ignoreMode)
+                        if (c == splitChar && pos != 0 && pos != source.Length - 1)
                         {
-                            if (c == splitChar)
-                                break;
+                            #region + Update positions and lengths
+                            _positions[idx] = start;
+                            _lengths[idx++] = pos - start;
+                            #endregion
 
-                            if ( splitChar == '\0' && c == '|' && pos + 1 < source.Length && source[pos + 1] == '|')
-                            {  break; }
-                        }
-                        pos++;
-                    }
+                            #region ? Update 'pos' if is double 'OR' split
+                            if (c == '\0' && splitChar == '\0') pos++;
+                            #endregion
 
-                    if (pos > start)
-                    {                   
-                        _positions[idx] = start;
-                        _lengths[idx] = pos - start;
-                        idx++;
+                            start = pos + 1;
 
-                        if (splitChar == '\0')
-                        {
-                            if (pos < source.Length && source[pos] == '|')
-                            { pos++; }
+                            #region ** Exception : Too many pattern parts
+                            if (idx == 161)
+                            { throw new IndexOutOfRangeException("TextBuilder only accept max 160 pattern parts ('|', '*', '||' and '~')!"); }
+                            #endregion
                         }
 
-                        if (idx == 160)
-                        { throw new IndexOutOfRangeException("TextBuilder only accept max 160 pattern parts ('|', '*', '||' and '~')!"); }
+                        #region + Dynamic char position
+                        if (c == '_' || c == '#' || c == '~')
+                        {
+                            if (_dynamic[idx] == -1) { _dynamic[idx] = pos; }
+                        }
+                        #endregion
                     }
-
-                    if (pos < source.Length) pos++;
                 }
 
-                count = idx;
+                #region ? Found only one pattern and not split
+                _positions[idx] = start;
+                _lengths[idx++] = pos - start;
+                if (start == 0) { count = 1; } else { count = idx; }
+                #endregion
 
-                if (text[0] == splitChar) 
-                { SplitInFirstChar = true; }
-                
-                if (text[text.Length - 1] == splitChar) 
-                { SplitInLastChar = true; _lengths[count - 1] = _lengths[count - 1] - 1; }
+                #region + Start or end with wildcard
+
+                if (text[0] == '*')
+                { WildcardInFirstChar = true; _positions[0] = 1; _lengths[0] = _lengths[0] - 1; }
+
+                if (text[text.Length - 1] == '*')
+                { WildcardInLastChar = true; _lengths[count - 1] = _lengths[count - 1] - 1; }
+
+                #endregion
 
                 positions = _positions.Slice(0, count).ToArray();
                 lengths = _lengths.Slice(0, count).ToArray();
+                dynamicChar = _dynamic.Slice(0, count).ToArray();
 
                 _positions = null;
                 _lengths = null;
@@ -143,7 +185,7 @@ namespace SmartSharp.TextBuilder
 
             #region Controller
 
-            public Span<char> this[int index]
+            public ReadOnlySpan<char> this[int index]
             {
                 get
                 {
@@ -157,7 +199,7 @@ namespace SmartSharp.TextBuilder
         }
 
         #endregion
-
+                
         #region ▼ Parameters
 
         /// <summary>
@@ -213,44 +255,57 @@ namespace SmartSharp.TextBuilder
 
         public static StringAndPosition Match(string text, string SequenceToMatch, int startIndex, int startIndexReturn, int endCutLenReturn, params byte[] options)
         {
-            return match(text.AsSpan().ToArray(), SequenceToMatch.AsSpan().ToArray(), startIndex, startIndexReturn, endCutLenReturn, options);
+            if(text.Length >=256)
+            {
+                Span<char> textStack = stackalloc char[text.Length];
+                text.CopyTo(textStack);
+
+                return match(textStack, SequenceToMatch.AsSpan().ToArray(), startIndex, startIndexReturn, endCutLenReturn, options);
+            }
+            else
+            {
+                char[] textSpan = text.ToArray();
+
+                StringAndPosition result = match(textSpan, SequenceToMatch.AsSpan().ToArray(), startIndex, startIndexReturn, endCutLenReturn, options);
+                if (textSpan != null){ Array.Clear(textSpan, 0, textSpan.Length); }
+
+                return result;
+            }
         }
 
-        private static ReadOnlySpan<char> adjustByParameters(ReadOnlySpan<char> text, params byte[] options)
+        private static ReadOnlySpan<char> adjustByParameters(Span<char> text, params byte[] options)
         {
-            Span<char> outText = text.ToArray();
-
             #region ? Ignore in quote
 
             if (options.Contains(ParamsIgnoreInQuotes))
-            { outText = fill(outText, '\0', "\'*\'"); }
+            { text = fillCore(text, ReadOnlySpan<char>.Empty, ReadOnlySpan<char>.Empty, "\'", "\'"); }
 
             #endregion
 
             #region ? Ignore in double quote
 
             if (options.Contains(ParamsIgnoreInQuotes))
-            { outText = fill(outText, '\0', "\"*\""); }
+            { text = fillCore(text, ReadOnlySpan<Char>.Empty, ReadOnlySpan<Char>.Empty, "\'", "\'"); }
 
             #endregion           
 
-            return outText.ToArray();
+            return text;
         }
 
         #endregion
 
         #region ► Controller
 
-        private static StringAndPosition match(ReadOnlySpan<char> text, Span<char> sequenceToMatch, int startIndex, int startIndexReturn, int endCutLenReturn, params byte[] options)
+        private static StringAndPosition match(Span<char> text, ReadOnlySpan<char> sequenceToMatch, int startIndex, int startIndexReturn, int endCutLenReturn, params byte[] options)
         {
             if (text.Length == 0) { return new StringAndPosition(); }
             if (sequenceToMatch.Length == 0) { return new StringAndPosition(); }
 
             #region ++ Flags and variable
 
-            int occurPos = -1;
-            int occurLen = 0;
-            
+            int returnPos = -1;
+            int returnLen = -1;
+
             #endregion
 
             ReadOnlySpan<char> textToSearch = adjustByParameters(text, options);           
@@ -263,44 +318,32 @@ namespace SmartSharp.TextBuilder
 
                 #region + Match Pattern
 
-                if (toMatch.ContainsWildcards(i) || (i == 0 && toMatch[i][0] == '*'))
+                if (toMatch.ContainsWildcards(i))
                 {
-                    do
+                    for (; pos < textToSearch.Length; pos++)
                     {
                         #region + Match
                         (pos, len) = matchPattern(textToSearch, toMatch[i], pos, options);
                         #endregion
 
-                        if (len != -1)
+                        if (pos == -1) { break; }
+
+                        #region ? There is not wildcard in start and end of pattern and is first occurrence params
+                        if (toMatch.WildcardInFirstChar || toMatch.WildcardInLastChar ||
+                             options.Contains(ParamsGreedyOccurence))
+                        { break; }
+                        #endregion
+
+                        #region + Update if this occurence pos is before that previous ( to the OR condition )
+                        //If not used OR condition, the occurrence automatically will be the first
+
+                        if ((uint)returnLen > (uint)len)
                         {
-                            #region ? Not the smaller occcurence lenght (the most accurate word), re-match pattern
-                            /*if informed 'ParamsGreedyOccurence' parameter, ignore accurate 
-                             * word and return first matches of pattern */
-
-                            if (!options.Contains(ParamsGreedyOccurence) && len !=-1)
-                            {
-                                if ((len < occurLen && len != 0) || occurLen == 0)
-                                {
-                                    #region + If wordTemp is more smaller of already storage word
-                                    //The smaller occurence is the more accurate result.
-                                    occurLen = len;
-                                    occurPos = pos;
-                                    #endregion
-                                }
-                                else if (len == 0) { len = -1; }
-
-                                #region + Reset flags
-
-                                pos++;
-                                                                
-                                #endregion
-                            }
-                            else { len = -1; }
-
-                            #endregion
+                            returnPos = pos;
+                            returnLen = len;
                         }
-
-                    } while (len != -1 && pos < textToSearch.Length - 1);
+                        #endregion
+                    }
                 }
                 #endregion
 
@@ -309,30 +352,67 @@ namespace SmartSharp.TextBuilder
                 {
                     #region + Match
 
-                    (pos, len) = matchLitteral(textToSearch, toMatch[i], pos, false, options);
+                    (pos, len) = matchLitteral(textToSearch, toMatch[i], pos, options);
                     if (pos == -1) { continue; }
 
                     #endregion
-
-                    #region ? The occurrence is first position in text?
-
-                    else if (pos < occurPos || occurPos == -1)
-                    { occurPos = pos; occurLen = len; }
-                    else { pos = startIndex; }
-
-                    #endregion
                 }
+                #endregion
+
+                #region ? The occurrence is first position in text?
+
+                if ( (uint)pos < (uint)returnPos )
+                { returnPos = pos; returnLen = len; }
+                else { pos = startIndex; }
 
                 #endregion
             }
 
-            if (occurLen == 0) { return new StringAndPosition(); }
+            if (returnPos == -1 ) { return new StringAndPosition(); }
 
-            if(startIndexReturn != 0) { occurPos += startIndexReturn; occurLen--; }
-            if(endCutLenReturn != 0) { occurLen -= endCutLenReturn; }
+            #region + Wildcard of start char in pattern
 
-            return new StringAndPosition(text.Slice(occurPos, occurLen).ToString(), occurPos);
+            if (toMatch.WildcardInFirstChar)
+            {   returnLen = returnPos + returnLen; returnPos = 0; }
+
+            #endregion
+
+            #region + Wildcard of last char in pattern
+
+            if (toMatch.WildcardInLastChar)
+            { returnLen = text.Length - returnPos; }
+
+            #endregion
+
+            if (startIndexReturn != 0) { returnPos += startIndexReturn; returnLen--; }
+            if(endCutLenReturn != 0) { returnLen -= endCutLenReturn; }
+
+            return new StringAndPosition(text.Slice(returnPos, returnLen).ToString(), returnPos);
         }
+
+        #endregion
+
+        #region ▼ Private Auxiliar Methods
+
+        #region » IsSeparator
+        private static bool IsSeparator(char c) => c == ' ' || c == '!' || c == '?' || c == '.' || c == ';' ||
+                                    c == ':' || c == ',' || c == '|' || c == '(' || c == ')' || c == '[' || c == ']'
+                                    || c == '{' || c == '}' || c == '\n' || c == '\t' || c == '\r';
+        #endregion
+
+        #region » DynamicCharPosition
+        private static int getDynamicCharPosition(ReadOnlySpan<char> pattern)
+        {
+            for (int i = 0; i < pattern.Length; i++)
+            {
+                if (pattern[i] == '_' || pattern[i] == '#' || pattern[i] == '~')
+                { return i; }
+            }
+
+            return -1;
+        }
+
+        #endregion
 
         #endregion
 
@@ -340,18 +420,20 @@ namespace SmartSharp.TextBuilder
 
         #region ► matchLitteral
 
-        private static (int, int) matchLitteral(ReadOnlySpan<char> text, Span<char> patterns, int startIndex, bool orInSequence = false, params byte[] options)
+        private static (int, int) matchLitteral(ReadOnlySpan<char> text, ReadOnlySpan<char> patterns, int startIndex, params byte[] options)
         {
-            int occurIndex = 0;
+            int pos = 0;
             int returnPos = -1;
             int returnLen = 0;
 
+            #region ** Exception : Invlaid pattern
             if (patterns[0] == '|' || patterns[patterns.Length -1] =='|')
             {
                 throw new InvalidFilterCriteriaException(
                 "Invalid use of 'OR' char('|')! Not use it to start, end pattern and after wildcard '*'."
                 );
             }
+            #endregion
 
             #region + Or split to or pattern
 
@@ -363,48 +445,22 @@ namespace SmartSharp.TextBuilder
             for (int i = 0; i < count; i++)
             {
                 //Reuse pattern to new resize length if inWord char is found
-                ReadOnlySpan<char> pattern = toMatch[i];
                 int len = 0;
 
-                if (toMatch.ContainsCompleteWord(i))
-                {
-                    #region + InWord char in pattern
-                    (occurIndex, len) = matchWord(text, pattern, startIndex);
-                    #endregion
-                }
-                else
-                {
-                    #region + Litteral pattern
+                #region + Litteral pattern
 
-                    bool dynamic = options.Contains(ParamsDynamicChars);
-                    bool caseSensitive = options.Contains(ParamsIgnoreCaseSensitive);
-                    occurIndex = indexOf(text, pattern, startIndex, dynamic);
+                bool caseSensitive = options.Contains(ParamsIgnoreCaseSensitive);
+                (pos, len) = indexOf(text, toMatch[i], startIndex, options);
 
-                    if (occurIndex == -1) { continue; }
+                if (pos == -1) { continue; }
 
-                    len = pattern.Length;
+                #endregion
 
-                    #endregion
-                }
+                #region ? The occurrence is first position in text?
 
-                #region + Update if this occurence pos is more smaller that previous ( to the OR condition )
-                //If not used OR condition, the occurrence automatically will be the first
-
-                if ((uint)occurIndex < (uint)returnPos)
-                {
-                    returnPos = occurIndex;
-                    returnLen = len;
-
-                    #region ? Start or end pattern with dynamic char
-
-                    if (options.Contains(ParamsDynamicChars))
-                    {
-                        if (pattern[0] == (char)1) { returnPos++; returnLen--; }
-                        if (pattern[pattern.Length - 1] == (char)1) { returnLen--; }
-                    }
-                    #endregion
-                }
-
+                if ((uint)returnPos > (uint)pos) 
+                { returnPos = pos; returnLen = len; }
+               
                 #endregion
             }
 
@@ -412,14 +468,7 @@ namespace SmartSharp.TextBuilder
             if (returnPos == -1)
             { return (-1, 0); }
             #endregion
-
-            #region + Pattern starting with wildcard
-
-            if (toMatch.SplitInFirstChar)
-            { returnPos = 0; }
-
-            #endregion
-
+                        
             return (returnPos, returnLen);
         }
 
@@ -427,68 +476,44 @@ namespace SmartSharp.TextBuilder
 
         #region ► matchPattern
 
-        private static ( int, int) matchPattern(ReadOnlySpan<char> text, Span<char> patterns, int startIndex, byte[] options = null)
+        private static (int, int) matchPattern(ReadOnlySpan<char> text, ReadOnlySpan<char> patterns, int startIndex, byte[] options = null)
         {
-            int occurPos = -1;
-            int occurLen = 0;
-            int occurStart = -1;
+            int returnPos = -1;
+            int returnLen = -1;
+            int pos = 0;
+            int len = 0;
 
             PatternsToMatch toMatch = new PatternsToMatch(patterns, '*');
-
             int count = toMatch.Count;
+
             for (int i = 0; i < count; i++)
             {
-                (occurPos, occurLen) = matchLitteral(text, toMatch[i], startIndex);
-
+                (pos, len) = matchLitteral(text, toMatch[i], startIndex, options);
+                
                 #region ? Not matched pattern
-                if (occurPos == -1)
-                { return (default, -1); }
+                if (pos == -1)
+                {  return (-1, 0); }
                 #endregion
 
-                if (toMatch.SplitInFirstChar)
-                {
-                    #region ! Pattern start with a wildcard, start occurence with first char of text
-                    occurStart = 0;
-                    #endregion
-                }
-                else if (occurStart == -1)
-                {
-                    #region ? Not start with wildcard storage pos of first occurence
-                    occurStart = occurPos;
-                    #endregion
-                }
-
-                #region + Start new match after this position
-
-                startIndex = occurPos + occurLen;
-                occurLen = startIndex - occurStart;
-
+                #region ! Matched pattern
+                if (returnPos == -1)
+                { returnPos = pos; startIndex = pos + 1; returnLen = len; }
+                else { returnLen = (pos - returnPos) + len; }
                 #endregion
             }
 
-            #region + Wildcard of start char in pattern
-
-            if (toMatch.SplitInFirstChar) { occurStart = 0; }
-
-            #endregion
-
-            #region + Wildcard of last char in pattern
-
-            if (toMatch.SplitInLastChar) { occurLen = text.Length - occurStart; }
-
-            #endregion
-
-            return (occurStart, occurLen);
+            return (returnPos, returnLen);
         }
 
         #endregion
 
         #region ► matchWord
 
-        private static (int, int) matchWord(ReadOnlySpan<char> text, ReadOnlySpan<char> patterns, int startIndex)
+        private static (int, int) matchWord(ReadOnlySpan<char> text, ReadOnlySpan<char> patterns, int startIndex, params byte[] options)
         {
             bool inStart = patterns[0] == '~'; 
             bool inLast = patterns[patterns.Length -1]=='~';
+
             int wordStart = 0;
             int wordPos = 0;
             int wordLen = patterns.Length;
@@ -507,14 +532,17 @@ namespace SmartSharp.TextBuilder
             patterns.Slice(_start, _len).CopyTo(pattern);
             pattern = pattern.TrimEnd('\0');
 
+            int inMiddle = pattern.IndexOf('~');
+
             #endregion
-                        
+
             #region + Search pattern
-            
+
             wordLen = pattern.Length;
             while (wordPos != -1)
             {
-                wordPos = indexOf(text, pattern, startIndex, true, true);
+                bool ignoreCase = options.Contains(ParamsIgnoreCaseSensitive);
+                ( wordPos, wordLen) = indexOf(text, pattern, startIndex, options);
                 wordStart = wordPos;
 
                 #region ? Matched pattern in text already is a complete word, so re-search another
@@ -551,7 +579,7 @@ namespace SmartSharp.TextBuilder
 
             wordLen = (wordPos + pattern.Length) - wordStart;
 
-            #region + Buils end of word
+            #region + Build end of word
 
             if (inLast)
             {
@@ -559,7 +587,7 @@ namespace SmartSharp.TextBuilder
                 {
                     if (IsSeparator(text[wordLen])) { wordLen++; break; }
                 }
-            }           
+            }
 
             #endregion
                         
@@ -570,105 +598,11 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
+        #region ▼ Methods Utils
+
         #region ▼ IndexOf
 
         #region ► IndexOf
-
-        private static int indexOf(ReadOnlySpan<char> text, ReadOnlySpan<char> pattern, int startIndex, bool acceptDynamicChars=false, bool ignoreCaseSensitive = false )
-        {
-            if (pattern.Length == 0) { return -1; }
-            if (text.Length == 0) { return -1; }
-
-            int patPos = 0;
-            int occurPos = 0;
-            bool isDynamic = false;
-
-            if (!acceptDynamicChars)
-            { occurPos = text[startIndex..].IndexOf(pattern); occurPos += startIndex; }
-            else
-            {
-                #region + Get at dynaminc char to start search
-
-                for (; patPos < pattern.Length; patPos++)
-                {
-                    char c = pattern[patPos];
-                    if (c == '~' || c == '_' || c == '#')
-                    { isDynamic = true; if (patPos > 0) { patPos--; }; break; }
-                }
-
-                #endregion
-
-                #region ? Not found any dynamic char
-
-                if (!isDynamic)
-                { occurPos = text[startIndex..].IndexOf(pattern); occurPos += startIndex; }
-
-                #endregion
-
-                #region ! Is a dynamic chars
-                else
-                {
-                    int patStart = patPos;
-                    int pos = 0;
-                    while (pos != -1)
-                    {
-                        for (; pos < text.Length; pos++)
-                        {
-                            #region + IndexOf sequence
-                            if (patStart > 0 && patPos == patStart)
-                            {
-                                patPos++;
-                                pos = text[startIndex..].IndexOf(pattern[..patStart]);
-                                pos += startIndex;
-                                occurPos = pos;
-                                pos += pattern[..patStart].Length;
-                            }
-                            #endregion
-
-                            char c = (char)text[pos];
-                            char pat = (char)pattern[patPos];
-
-                            #region ! Match text character with pattern character
-                            if (c == pat)
-                            { patPos++; if (occurPos == 0) { occurPos = pos; } }
-                            #endregion
-
-                            #region ! Pattern char is number  
-                            else if (pat == '#' && char.IsDigit(c))
-                            { patPos++; if (occurPos == 0) { occurPos = pos; } }
-                            #endregion
-
-                            #region ! Pattern char is word separator 
-                            else if (pat == '_' && IsSeparator(c))
-                            { patPos++; if (occurPos == 0) { occurPos = pos; } }
-                            #endregion
-
-                            #region ! Match text char if IgnoreCaseSensitive is on
-                            else if (ignoreCaseSensitive)
-                            {
-                                if (toLower(c) == toLower(pat)) { patPos++; occurPos = pos; }
-                                else { break; }
-                            }
-                            #endregion
-
-                            #region ! Not match found
-                            else
-                            {
-                                startIndex = pos - (pattern[..patPos].Length - 1);
-                                patPos = patStart;
-                                if (occurPos != 0) { pos = occurPos; occurPos = 0; }
-                            }
-                            #endregion
-
-                            if (patPos == pattern.Length) { pos = -1; break; }
-                        }
-                    }
-                }
-                #endregion
-            }
-
-            return occurPos;
-        }
 
         public static int IndexOf(string text, string SequenceToMatch, params byte[] options)
         {
@@ -688,6 +622,31 @@ namespace SmartSharp.TextBuilder
 
         #region ► IndexOfAll
 
+        public static int[] IndexOfAll(string text, string SequenceToMatch, params byte[] options)
+        {
+            return IndexOfAll(text, SequenceToMatch, 0, options);
+        }
+
+        public static int[] IndexOfAll(string text, string SequenceToMatch, int startIndex, params byte[] options)
+        {
+            if (text.Length >= 256)
+            {
+                Span<char> textStack = stackalloc char[text.Length];
+                text.CopyTo(textStack);
+
+                return indexOfAllCore(textStack, SequenceToMatch, startIndex, options); 
+            }
+            else
+            {
+                char[] textSpan = text.ToArray();
+
+                int[] result = indexOfAllCore(textSpan, SequenceToMatch, startIndex, options);
+                if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
+
+                return result;
+            }
+        }
+
         /// <summary>
         /// Index position of start all occurrences in text 
         /// </summary>
@@ -698,44 +657,364 @@ namespace SmartSharp.TextBuilder
         /// <param name="startIndex">Start search in this position</param>
         /// <param name="options">Parameters</param>
         /// <returns>Array of int with all occurrence index positions</returns>
-        public static Dictionary<string, int> IndexOfAll(string text, string SequenceToMatch, params byte[] options)
+        private static int[] indexOfAllCore(Span<char> text, ReadOnlySpan<char> SequenceToMatch, int startIndex, params byte[] options)
         {
             //ReadOnlySpan<char> toMatch = SequenceToMatch;
             PatternsToMatch toMatch = new PatternsToMatch(SequenceToMatch.ToArray(), ',', '\'');
-            Dictionary<string, int> result = new Dictionary<string, int>();
+            List<int> result = new List<int>();
 
             int count = toMatch.Count;
             for (int i = 0; i < count; i++)
             {
-                StringAndPosition matchReturn = Match(text, toMatch[i].ToString(), 0, options);
-                result.Add(matchReturn.ToString(), matchReturn.Position);
+                StringAndPosition matchReturn = match(text, toMatch[i], 0,0, 0, options);
+                result.Add(matchReturn.Position);
             }
 
-            return result;
+            return result.ToArray();
         }
 
-        public static Dictionary<string, int> IndexOfAll(string text, string SequenceToMatch, int startIndex, params byte[] options)
+        #endregion
+
+        #region ► Model
+        private static (int position, int additionalLen) indexOf(ReadOnlySpan<char> text, ReadOnlySpan<char> pattern, int startIndex, params byte[] options)
         {
-            return IndexOfAll(text, SequenceToMatch, startIndex, options);
+            if (pattern.Length == 0) { return (-1, 0); }
+            if (text.Length == 0) { return (-1, 0); }
+            int occurPos = 0;
+            int occurLen = pattern.Length;
+            int patPos = 0;
+            int len = 0;
+            int pos = startIndex;
+            bool dynamicChar = options.Contains(ParamsDynamicChars);
+            bool ignoreCase = options.Contains(ParamsIgnoreCaseSensitive);
+            bool ignoreInQuotes = options.Contains(ParamsIgnoreInQuotes);
+            bool ignoreInDoubleQuotes = options.Contains(ParamsIgnoreInDoubleQuotes);
+            bool completeWord = false;
+            bool ignore = false;
+
+            #region + Literal pattern
+            if (!dynamicChar && !ignoreCase && !ignoreInQuotes && !ignoreInDoubleQuotes)
+            {
+                if (getDynamicCharPosition(pattern) > 0)
+                {
+                    occurPos = text[occurPos..].IndexOf(pattern);
+                    if (occurPos == -1) { return (-1, 0); }
+                    else { return (occurPos, occurLen); }
+                }
+            }
+            #endregion
+
+            for (; pos < text.Length; pos++)
+            {
+                #region + Char in text
+                char c = text[pos];
+                #endregion
+
+                #region + Ignore in quotes
+                                
+                if ((ignoreInQuotes && c == '\'') ||
+                   (ignoreInDoubleQuotes && c == '\"'))
+                {
+                    ignore = !ignore;
+                    continue;
+                }
+
+                if (ignore) { continue; }
+
+                #endregion
+
+                #region + Pattern char
+                if ( patPos == pattern.Length ) { break; }
+                if( patPos == 0 && completeWord ) { patPos++; }
+                char p = (char)pattern[patPos];
+                #endregion
+
+                #region + Match char
+                if (c == p) 
+                { 
+                    if (occurPos == -1) { occurPos = pos; }
+                    occurLen++; patPos++; continue;
+                }
+                #endregion
+
+                #region + Word separator char
+                if (p == '_' && IsSeparator(c))
+                {
+                    if (occurPos == -1) { occurPos = pos; }
+                    occurLen++; patPos++; continue;
+                }
+                #endregion
+
+                #region + Number char
+
+                if (Char.IsDigit(c) && p == '#' )
+                {
+                    len = DynamicNumber(text, pos);
+                    if (occurPos == -1) { occurPos = pos; }
+                    pos += (len -1); occurLen += len; patPos++; continue;
+                }
+
+                #endregion
+
+                #region + Word complete char
+
+                if (p == '~')
+                {
+                    int _pos=-1;
+
+                    if (patPos ==0) 
+                    {
+                        if ( pos > 0 )
+                        {
+                            if (!IsSeparator(text[pos - 1]))
+                            { completeWord = true; pos--; patPos++; continue; }
+                        }
+                    }
+                    else 
+                    { (_pos, len) = completeWordEnd(text, pos); }
+
+                    if(_pos != -1)
+                    {
+                        if (occurPos == -1) { occurPos = _pos; }
+                        occurLen += len + 1; patPos++; continue;
+                    }
+                }
+
+                #endregion
+
+                #region + Ignore sensitive case char
+
+                if (ignoreCase)
+                {
+                    if (toLower(c) == toLower(p))
+                    {
+                        if (occurPos == -1) { occurPos = pos; }
+                        occurLen++; patPos++; continue;
+                    }
+                }
+ 
+                #endregion
+
+                occurPos = -1; // Reset occurrence position
+                occurLen = 0; // Reset occurrence length
+                patPos = 0; // Reset pattern position
+
+            }
+
+            if( completeWord)
+            { (occurPos, len) = completeWordStart(text, occurPos); occurLen += len; }
+
+            return (occurPos, occurLen);
+        }
+
+        #endregion
+                
+        #region ► dynamicNumber
+        private static int DynamicNumber(ReadOnlySpan<char> text, int pos)
+        {
+            int len = 0;
+            for(; pos < text.Length; pos++)
+            {
+                char c = text[pos];
+                if (c < '0' || c > '9')
+                { break;}
+
+                len++;
+            }
+
+            return len;
+        }
+
+        #endregion
+
+        #region ► completeWord
+
+        private static (int newPos, int newCharsLen) completeWordStart(ReadOnlySpan<char> text, int pos)
+        {
+            int len = 0;
+            for (; pos > -1; pos--)
+            {
+                char c = text[pos];
+                if (IsSeparator(c))
+                { break; }
+                len++;
+            }
+
+            return ( pos +1, len - 1 );
+        }
+
+        public static (int, int) completeWordEnd(ReadOnlySpan<char> text, int pos)
+        {
+            int len = 0;
+            int start = pos;
+
+            for (; pos < text.Length; pos++)
+            {
+                char c = text[pos];
+                if (IsSeparator(c))
+                {
+                    if(pos == start)
+                    { len = 0; pos = -1; } // Skip first char if not separator
+
+                    break;
+                }
+                len++;
+            }
+
+            return (pos - 1, len - 1);
         }
 
         #endregion
 
         #endregion
 
-        #region ► ToLower
+        #region ▼ ToLower
 
-        private static Span<char> toLowerText(Span<char> text)
+        #region ► ToLower Ignore in snippet
+        public static string ToLowerIgnoreInSnippet(string text, (string open, string close) ignoreBetween)
+        {
+            if (text.Length >= 256)
+            {
+                Span<char> textStack = stackalloc char[text.Length];
+                text.CopyTo(textStack);
+
+                ReadOnlySpan<char> result = toLowerTextIgnore(textStack, ignoreBetween.open, ignoreBetween.close);
+                    
+                return result.ToString();
+            }
+            else
+            {
+                char[] textSpan = text.ToArray();
+
+                ReadOnlySpan<char> result = toLowerTextIgnore(textSpan, ignoreBetween.open, ignoreBetween.close);
+                if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
+
+                return result.ToString();
+            }
+        }
+        #endregion
+
+        #region ► ToLOwer Only in snippet
+        public static string ToLowerOnlyInSnippet(string text, (string open, string close) onlyBetween)
+        {
+            if (text.Length >= 256)
+            {
+                Span<char> textStack = stackalloc char[text.Length];
+                text.CopyTo(textStack);
+
+                ReadOnlySpan<char> result = toLowerTextBetween(textStack, onlyBetween.open, onlyBetween.close);
+
+                return result.ToString();
+            }
+            else
+            {
+                char[] textSpan = text.ToArray();
+
+                ReadOnlySpan<char> result = toLowerTextIgnore(textSpan, onlyBetween.open, onlyBetween.close);
+                if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
+
+                return result.ToString();
+            }
+        }
+        #endregion
+
+        #region ► ToLower char
+        public static string ToLowerChar(string text, char character)
+        {
+            Span<char> _char = stackalloc char[1] {character};
+
+            if (text.Length >= 256)
+            {
+                Span<char> textStack = stackalloc char[text.Length];
+                text.CopyTo(textStack);
+
+                ReadOnlySpan<char> result = toLowerChar(textStack, _char);
+
+                return result.ToString();
+            }
+            else
+            {
+                char[] textSpan = text.ToArray();
+
+                ReadOnlySpan<char> result = toLowerChar(textSpan, _char);
+                if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
+
+                return result.ToString();
+            }
+        }
+        #endregion
+
+        #region ► ToLower match
+        public static string ToLowerMatch(string text, string sequenceToMatch, int startIndex, params byte[] options)
+        {
+            ReadOnlySpan<char> _text = text;
+            ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+
+            StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
+
+            matchReturn.Text = matchReturn.Text.ToLower();
+
+            ReadOnlySpan<char> result = insert(text, matchReturn.Text, matchReturn.Position, matchReturn.Text.Length, true);
+
+            return result.ToString();
+        }
+        #endregion
+
+        #region ▼ Models
+
+        private static ReadOnlySpan<char> toLowerChar(Span<char> text, Span<char> character)
         {
             // Tabelas estáticas (não alocam em cada chamada)
             static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
             static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
+                        
+            for (int i = 0; i < text.Length; i++)
+            {
+                ref char c = ref text[i];
+                // ASCII A-Z
+
+                if (c >= 'A' && c <= 'Z' && c == character[0])
+                {
+                    c = (char)(c + 32);
+                }
+                else
+                {
+                    // Busca em tabela de acentuados
+                    int index = UpperChars().IndexOf(c);
+                    if (index != -1 && c == character[0])
+                    {
+                        c = LowerChars()[index];
+                    }
+                    // Se quiser, adicione fallback:
+                    // else
+                    // {
+                    //     c = char.ToLowerInvariant(c);
+                    // }
+                }
+            }
+
+            return text;
+        }
+
+        private static ReadOnlySpan<char> toLowerTextIgnore(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag)
+        {
+            // Tabelas estáticas (não alocam em cada chamada)
+            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
+            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
+            bool ignore = false;
 
             for (int i = 0; i < text.Length; i++)
             {
                 ref char c = ref text[i];
-
                 // ASCII A-Z
+
+                if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
+                { ignore = true; i += openTag.Length; }
+                else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
+                { ignore = false; i += closeTag.Length; }
+
+                if (ignore) { continue; }
+
                 if (c >= 'A' && c <= 'Z')
                 {
                     c = (char)(c + 32);
@@ -759,28 +1038,316 @@ namespace SmartSharp.TextBuilder
             return text;
         }
 
-        private static char toLower(char charactere)
+        private static ReadOnlySpan<char> toLowerTextBetween(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag)
+        {
+            // Tabelas estáticas (não alocam em cada chamada)
+            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
+            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
+            bool accept = false;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                ref char c = ref text[i];
+                // ASCII A-Z
+
+                if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
+                { accept = true; i += openTag.Length; }
+                else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
+                { accept = false; i += closeTag.Length; }
+
+                if (!accept) { continue; }
+
+                if (c >= 'A' && c <= 'Z')
+                {
+                    c = (char)(c + 32);
+                }
+                else
+                {
+                    // Busca em tabela de acentuados
+                    int index = UpperChars().IndexOf(c);
+                    if (index != -1)
+                    {
+                        c = LowerChars()[index];
+                    }
+                    // Se quiser, adicione fallback:
+                    // else
+                    // {
+                    //     c = char.ToLowerInvariant(c);
+                    // }
+                }
+            }
+
+            return text;
+        }
+
+        private static char toLower(char character)
+        {
+            if (character >= 'a' && character <= 'z') { return character; }
+
+            // Tabelas estáticas (não alocam em cada chamada)
+            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
+            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
+
+            // ASCII A-Z
+            if (character >= 'A' && character <= 'Z')
+            {
+                character = (char)(character + 32);
+            }
+            else
+            {
+                // Busca em tabela de acentuados
+                int index = UpperChars().IndexOf(character);
+                if (index != -1)
+                {
+                    character = LowerChars()[index];
+                }
+                else
+                {
+                    character = char.ToLowerInvariant(character);
+                }
+            }
+
+            return character;
+        }
+
+        #endregion
+
+        #endregion
+
+        #region ▼ ToUpper
+
+        #region ► ToUpper Ignore in snippet
+        public static string ToUpperIgnoreInSnippet(string text, (string open, string close) ignoreBetween)
+        {
+            if (text.Length >= 256)
+            {
+                Span<char> textStack = stackalloc char[text.Length];
+                text.CopyTo(textStack);
+
+                ReadOnlySpan<char> result = toUpperTextIgnore(textStack, ignoreBetween.open, ignoreBetween.close);
+
+                return result.ToString();
+            }
+            else
+            {
+                char[] textSpan = text.ToArray();
+
+                ReadOnlySpan<char> result = toUpperTextIgnore(textSpan, ignoreBetween.open, ignoreBetween.close);
+                if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
+
+                return result.ToString();
+            }
+        }
+        #endregion
+
+        #region ► ToUpper Only in snippet
+        public static string ToUpperOnlyInSnippet(string text, (string open, string close) onlyBetween)
+        {
+            if (text.Length >= 256)
+            {
+                Span<char> textStack = stackalloc char[text.Length];
+                text.CopyTo(textStack);
+
+                ReadOnlySpan<char> result = toUpperTextBetween(textStack, onlyBetween.open, onlyBetween.close);
+
+                return result.ToString();
+            }
+            else
+            {
+                char[] textSpan = text.ToArray();
+
+                ReadOnlySpan<char> result = toUpperTextBetween(textSpan, onlyBetween.open, onlyBetween.close);
+                if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
+
+                return result.ToString();
+            }
+        }
+        #endregion
+
+        #region ► ToUpper char
+        public static string ToUpperChar(string text, char character)
+        {
+            Span<char> _char = stackalloc char[1] { character };
+
+            if (text.Length >= 256)
+            {
+                Span<char> textStack = stackalloc char[text.Length];
+                text.CopyTo(textStack);
+
+                ReadOnlySpan<char> result = toUpperChar(textStack, _char);
+
+                return result.ToString();
+            }
+            else
+            {
+                char[] textSpan = text.ToArray();
+
+                ReadOnlySpan<char> result = toUpperChar(textSpan, _char);
+                if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
+
+                return result.ToString();
+            }
+        }
+        #endregion
+
+        #region ► ToUpper match
+        public static string ToUpperMatch(string text, string sequenceToMatch, int startIndex, params byte[] options)
+        {
+            ReadOnlySpan<char> _text = text;
+            ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+
+            StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
+
+            matchReturn.Text = matchReturn.Text.ToLower();
+
+            ReadOnlySpan<char> result = insert(text, matchReturn.Text, matchReturn.Position, matchReturn.Text.Length, true);
+
+            return result.ToString();
+        }
+        #endregion
+
+        #region ▼ Models
+
+        private static ReadOnlySpan<char> toUpperChar(Span<char> text, Span<char> character)
+        {
+            // Tabelas estáticas (não alocam em cada chamada)
+            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
+            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                ref char c = ref text[i];
+                // ASCII A-Z
+
+                if (c >= 'a' && c <= 'z' && c == character[0])
+                {
+                    c = (char)(c - 32);
+                }
+                else
+                {
+                    // Busca em tabela de acentuados
+                    int index = LowerChars().IndexOf(c);
+                    if (index != -1 && c == character[0])
+                    {
+                        c = UpperChars()[index];
+                    }
+                    // Se quiser, adicione fallback:
+                    // else
+                    // {
+                    //     c = char.ToLowerInvariant(c);
+                    // }
+                }
+            }
+
+            return text;
+        }
+
+        private static ReadOnlySpan<char> toUpperTextIgnore(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag)
+        {
+            // Tabelas estáticas (não alocam em cada chamada)
+            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
+            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
+            bool ignore = false;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                ref char c = ref text[i];
+                // ASCII A-Z
+
+                if (openTag[0] == c)
+                { ignore = true; }
+                else if (closeTag[0] == c)
+                { ignore = false; }
+
+                if (ignore) { continue; }
+
+                if (c >= 'a' && c <= 'z')
+                {
+                    c = (char)(c - 32);
+                }
+                else
+                {
+                    // Busca em tabela de acentuados
+                    int index = LowerChars().IndexOf(c);
+                    if (index != -1)
+                    {
+                        c = UpperChars()[index];
+                    }
+                    // Se quiser, adicione fallback:
+                    // else
+                    // {
+                    //     c = char.ToLowerInvariant(c);
+                    // }
+                }
+            }
+
+            return text;
+        }
+
+        private static ReadOnlySpan<char> toUpperTextBetween(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag)
+        {
+            // Tabelas estáticas (não alocam em cada chamada)
+            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
+            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
+            bool accept = false;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                ref char c = ref text[i];
+                // ASCII a-z
+
+                if (openTag[0] == c)
+                { accept = true; }
+                else if (closeTag[0] == c)
+                { accept = false; }
+
+                if (!accept) { continue; }
+
+                if (c >= 'a' && c <= 'z')
+                {
+                    c = (char)(c - 32);
+                }
+                else
+                {
+                    // Busca em tabela de acentuados
+                    int index = LowerChars().IndexOf(c);
+                    if (index != -1)
+                    {
+                        c = UpperChars()[index];
+                    }
+                    // Se quiser, adicione fallback:
+                    // else
+                    // {
+                    //     c = char.ToLowerInvariant(c);
+                    // }
+                }
+            }
+
+            return text;
+        }
+
+        private static char toUpper(char charactere)
         {
             // Tabelas estáticas (não alocam em cada chamada)
             static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
             static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
 
             // ASCII A-Z
-            if (charactere >= 'A' && charactere <= 'Z')
+            if (charactere >= 'a' && charactere <= 'z')
             {
-                charactere = (char)(charactere + 32);
+                charactere = (char)(charactere - 32);
             }
             else
             {
                 // Busca em tabela de acentuados
-                int index = UpperChars().IndexOf(charactere);
+                int index = LowerChars().IndexOf(charactere);
                 if (index != -1)
                 {
-                    charactere = LowerChars()[index];
+                    charactere = UpperChars()[index];
                 }
                 else
                 {
-                    charactere = char.ToLowerInvariant(charactere);
+                    charactere = char.ToUpperInvariant(charactere);
                 }
             }
 
@@ -789,70 +1356,105 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
-        #region ► Fill
+        #endregion
 
-        #region ▼ Publics
+        #region ▼ Fill
 
-        public static string Fill(string text, char charactere)
+        #region ▼ Fill
+
+        public static string Fill(string text, char character)
         {
-            return Fill(text, charactere, '\0');
+            return Fill(text, character, '\0', default);
         }
 
-        public static string Fill(string text, char charactere, char onlyCharacter)
+        public static string Fill(string text, char character, char onlyCharacter)
         {
-            return Fill(text, charactere, onlyCharacter);
+            return Fill(text, character, onlyCharacter, default);
         }
 
-        public static string Fill(string text, char charactere, char onlyCharacter, string between)
+        public static string Fill(
+            string text,
+            char character,
+            char onlyCharacter,
+            (string open, string close) between = default)
         {
+            // Básica validation
+            if (string.IsNullOrEmpty(text)) return text;
 
-            return fill(text.ToArray(), charactere, onlyCharacter, between).ToString();
+            #region + Cast to spans
+
+            ReadOnlySpan<char> inputSpan = text.AsSpan();
+            ReadOnlySpan<char> openSpan = !string.IsNullOrEmpty(between.open) ? between.open.AsSpan() : ReadOnlySpan<char>.Empty;
+            ReadOnlySpan<char> closeSpan = !string.IsNullOrEmpty(between.close) ? between.close.AsSpan() : ReadOnlySpan<char>.Empty;
+
+            Span<char> charSpan = stackalloc[] { character };
+            Span<char> onlySpan = onlyCharacter != '\0' ? stackalloc[] { onlyCharacter } : Span<char>.Empty;
+
+            #endregion
+
+            if (inputSpan.Length <= 256) // Limite seguro para stack
+            {
+                #region + Little text in stack
+
+                Span<char> stackBuffer = stackalloc char[inputSpan.Length];
+                inputSpan.CopyTo(stackBuffer);
+
+                var resultSpan = fillCore(stackBuffer, charSpan, onlySpan, openSpan, closeSpan);
+                return resultSpan.ToString();
+
+                #endregion
+            }
+            else
+            {
+                #region + Big text in array
+
+                char[] arrayToDispose = inputSpan.ToArray(); // Apenas se grande
+                                
+                var resultSpan = fillCore(arrayToDispose, charSpan, onlySpan, openSpan, closeSpan);
+                string result = resultSpan.ToString();
+
+                if (arrayToDispose != null)
+                {
+                    Array.Clear(arrayToDispose, 0, arrayToDispose.Length); // opcional: segurança
+                }
+
+                return result;
+
+                #endregion
+            }
         }
 
         #endregion
 
-        #region ▼ Privates
-
-        private static Span<char> fill(Span<char> text, char charactere)
-        {
-            return fill(text, charactere, '\0', ReadOnlySpan<char>.Empty);
-        }
-
-        private static Span<char> fill(Span<char> text, char charactere, ReadOnlySpan <char> between)
-        {
-            return fill(text, charactere, '\0', between);
-        }
-
-        private static Span<char> fill(Span<char> text, char charactere, char onlyCharacter, ReadOnlySpan<char> between)
+        #region ▼ Models      
+        
+        private static Span<char> fillCore(Span<char> text, ReadOnlySpan<char> charactere, ReadOnlySpan<char> onlyCharacter, ReadOnlySpan<char> openSnippet, ReadOnlySpan<char> closeSnippet)
         {
             #region ? Just fill all characters
-            if (onlyCharacter == '\0' && between.IsEmpty)
-            { text.Fill(charactere); }
+
+            if (onlyCharacter == ReadOnlySpan<char>.Empty && openSnippet == ReadOnlySpan<char>.Empty)
+            {
+                text.Fill(charactere[0]); 
+            }
+            
             #endregion
 
-            #region ? Just fill respective character of onlyCharacter
-            else if (between.IsEmpty)
+            #region ? Only fill respective character of 'onlyCharacter' parameter
+            else if (openSnippet == ReadOnlySpan<char>.Empty)
             {
                 for (int i = 0; i < text.Length; i++)
                 {
-                    if (text[i] == onlyCharacter) { text[i] = charactere; }
+                    if (text[i] == onlyCharacter[0]) { text[i] = charactere[0]; }
                 }
             }
             #endregion
 
-            #region ! Fill characters between pattern in 'between' parameter
+            #region ! Fill all characters between of 'open and close snippet' chars in parameter
             else
             {
-                Span<char> _between = stackalloc char[between.Length];
-                between.CopyTo(_between);
-
-                PatternsToMatch tagsIn = new PatternsToMatch(_between, '*');
-                Span<char> openTag = tagsIn[0];
-                Span<char> closeTag = tagsIn[1];
-
                 #region ** Exception : Inavalid 'between'
 
-                if (tagsIn.Count != 2)
+                if (openSnippet == ReadOnlySpan<char>.Empty || closeSnippet == ReadOnlySpan<char>.Empty)
                 {
                     throw new InvalidOperationException(
                     "Invalid format of 'between' snippet identification! Ex:'[start]*[end]'"
@@ -867,31 +1469,33 @@ namespace SmartSharp.TextBuilder
                 {
                     #region + Match start tag of between parameter
 
-                    pos = text[pos..].IndexOf(openTag);
+                    pos = text[pos..].IndexOf(openSnippet);
                     if (pos == -1) { break; }
 
                     #endregion
 
-                    pos++;
+                    pos += openSnippet.Length;
 
                     for (; pos < text.Length; pos++)
                     {
                         #region ? A close tag of between parameter
 
-                        if (text.Slice(pos, closeTag.Length).SequenceEqual(closeTag))
-                        { pos += closeTag.Length + 1; break; }
+                        if (text.Slice(pos, closeSnippet.Length).SequenceEqual(closeSnippet))
+                        { pos += closeSnippet.Length; break; }
 
                         #endregion
 
                         #region ? if OnlyCharacter paraneter informed, Just fill respective charactere
-                        if (onlyCharacter != '\0')
+                        if (onlyCharacter != ReadOnlySpan<char>.Empty)
                         {
-                            if (text[pos] == onlyCharacter) { text[pos] = charactere; }
+                            if (text[pos] == onlyCharacter[0]) { text[pos] = charactere[0]; }
                         }
                         #endregion
 
+                        else if (charactere == ReadOnlySpan<char>.Empty)
+                        { text[pos] = '\0'; }
                         else
-                        { text[pos] = charactere; }
+                        { text[pos] = charactere[0]; }
                     }
                 }
             }
@@ -968,6 +1572,15 @@ namespace SmartSharp.TextBuilder
 
         public static string Replace(string text, string sequenceToMatch, string toRepalce, int startIndex, params byte[] options)
         {
+            return replaceCore(text, sequenceToMatch, toRepalce, startIndex, options);
+        }
+
+        #endregion
+
+        #region ► Model
+
+        private static string replaceCore(string text, string sequenceToMatch, string toRepalce, int startIndex, params byte[] options)
+        {
             ReadOnlySpan<char> _text = text;
             ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
             ReadOnlySpan<char> _toReplace = toRepalce;
@@ -994,7 +1607,9 @@ namespace SmartSharp.TextBuilder
 
         public static string Insert(string text, string toInsert, int positionIndex)
         {
-            return insert(text, toInsert, positionIndex, toInsert.Length, false).ToString();
+            var result = insert(text, toInsert, positionIndex, toInsert.Length, false);
+
+            return result.ToString();
         }
 
         #endregion
@@ -1005,7 +1620,9 @@ namespace SmartSharp.TextBuilder
         {
             StringAndPosition matchReturn = Match(text, beforeIt, options);
             int position = matchReturn.Position;
-            return insert(text, toInsert, position, toInsert.Length, false).ToString();
+            ReadOnlySpan<char> result = insert(text, toInsert, position, toInsert.Length, false).ToString();
+
+            return result.ToString();
         }
 
         #endregion
@@ -1016,7 +1633,9 @@ namespace SmartSharp.TextBuilder
         {
             StringAndPosition matchReturn = Match(text, afterIt, options);
             int position = matchReturn.Position + matchReturn.Text.Length;
-            return insert(text, toInsert, position, toInsert.Length, false).ToString();
+            ReadOnlySpan<char> result = insert(text, toInsert, position, toInsert.Length, false);
+
+            return result.ToString();
         }
 
         #endregion
@@ -1049,32 +1668,181 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
+        #region ▼ Remove
+
+        #region ► RemoveFirst
+
+        public static string RemoveFirst(string text, string sequenceToMatch, params byte[] options)
+        {
+            return RemoveFirst(text, sequenceToMatch, 0, options);
+        }
+
+        public static string RemoveFirst(string text, string sequenceToMatch, int startIndex, params byte[] options)
+        {
+            ReadOnlySpan<char> _text = text;
+            ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+
+            StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
+            ReadOnlySpan<char> result = insert(text, ReadOnlySpan<char>.Empty, matchReturn.Position, matchReturn.Text.Length, true);
+
+            return result.ToString();
+        }
+
+        #endregion
+
+        #region ► RemoveLast
+
+        public static string RemoveLast(string text, string sequenceToMatch, params byte[] options)
+        {
+            return RemoveLast(text, sequenceToMatch, 0, options);
+        }
+
+        public static string RemoveLast(string text, string sequenceToMatch, int startIndex, params byte[] options)
+        {
+            ReadOnlySpan<char> _text = text;
+            ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+            ReadOnlySpan<char> result = default;
+            int position = 0;
+            int len = 0;
+
+            while (position != -1)
+            {
+                StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
+                position = matchReturn.Position;
+
+                if (matchReturn.Position != -1)
+                { startIndex = matchReturn.Position; len = matchReturn.Text.Length; }
+            }
+
+            result = insert(text, ReadOnlySpan<char>.Empty, startIndex, len, true);
+
+            return result.ToString();
+        }
+
+        #endregion
+
+        #region ► Remove
+
+        public static string Remove(string text, string sequenceToMatch, params byte[] options)
+        {
+            return Remove(text, sequenceToMatch, 0, options);
+        }
+
+        public static string Remove(string text, string sequenceToMatch, int startIndex, params byte[] options)
+        {
+            ReadOnlySpan<char> _text = text;
+            ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+            ReadOnlySpan<char> result = default;
+            int position = 0;
+
+            while (position != -1)
+            {
+                StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, ParamsGreedyOccurence);
+                position = matchReturn.Position;
+                result = insert(text, ReadOnlySpan<char>.Empty, matchReturn.Position, matchReturn.Text.Length, true);
+            }
+
+            return result.ToString();
+        }
+
+        #endregion
+
+        #endregion
+
+        #region ▼ Split
+
+        public static string[] Split(string text, char separator, (char open, char close)ignoreChar)
+        {
+            return split(text, separator,0, ignoreChar);
+        }
+
+        public static string[] Split(string text, char separator, int startIndex, (char open, char close) ignoreChar)
+        {
+            return split(text, separator, startIndex, ignoreChar);
+        }
+
+        private static string[] split(ReadOnlySpan<char> text, char separator, int startIndex, (char open, char close)ignoreChar)
+        {
+            int pos = 0;
+            bool ignoreMode = false;
+            List<string> splited = new List<string>();
+
+            while (pos < text[startIndex..].Length)
+            {
+                int start = pos;
+                while (pos < text[startIndex..].Length)
+                {
+                    char c = text[startIndex..][pos];
+
+                    if (c == ignoreChar.open) ignoreMode = true;
+                    if (c == ignoreChar.close) ignoreMode = false;
+
+                    if (!ignoreMode)
+                    {
+                        if (c == separator) break;
+                    }
+                    pos++;
+                }
+
+                if (pos > start)
+                {
+                    splited.Add(text.Slice(start, pos - start).ToString());
+                }
+
+                if (pos < text.Length) pos++;
+            }
+
+            return splited.ToArray();
+        }
+
+        #endregion
+
+        #region ▼ Contains
+
+        public static bool Contains(string text, string SequenceToMatch, params byte[] options)
+        {
+            StringAndPosition matchReturn = Match(text, SequenceToMatch, options);
+
+            return matchReturn.Position !=-1;
+        }
+
+        public static bool Contains(string text, string SequenceToMatch, int startIndex, params byte[] options)
+        {
+            StringAndPosition matchReturn = Match(text, SequenceToMatch, startIndex, options);
+
+            return matchReturn.Position !=-1;
+        }
+
+        #endregion
+
+        #endregion
+
         #endregion
 
         #region ▼ Match Snippets
-
-        #region ▼ Snippets
 
         #region ► Constructors
 
         public static StringAndPosition Snippet(string sourceText, string openAndCloseTags, params byte[] options)
         {
-            return snippet(sourceText, openAndCloseTags, string.Empty, 0, options);
+            return Snippet(sourceText, openAndCloseTags, string.Empty, 0, options);
         }
 
         public static StringAndPosition Snippet(string sourceText, string openAndCloseTags, int startIndex, params byte[] options)
         {
-            return snippet(sourceText, openAndCloseTags, string.Empty, startIndex, options);
+            return Snippet(sourceText, openAndCloseTags, string.Empty, startIndex, options);
         }
 
         public static StringAndPosition Snippet(string sourceText, string openAndCloseTags, string idOfSnippet, params byte[] options)
         {
-            return snippet(sourceText, openAndCloseTags, idOfSnippet, 0, options);
+            return Snippet(sourceText, openAndCloseTags, idOfSnippet, 0, options);
         }
 
         public static StringAndPosition Snippet(string sourceText, string openAndCloseTags, string idOfSnippet, int startIndex, params byte[] options)
         {
-            return snippet(sourceText, openAndCloseTags, idOfSnippet, startIndex, options);
+            var resultSpan = snippet(sourceText, openAndCloseTags, idOfSnippet, startIndex, options);
+
+            return resultSpan;
         }
 
         #endregion
@@ -1082,9 +1850,9 @@ namespace SmartSharp.TextBuilder
         #region ► Controller
         private static StringAndPosition snippet(ReadOnlySpan<char> text, ReadOnlySpan<char> snippetTags, ReadOnlySpan<char> snippetID, int startIndex, params byte[] options)
         {
-            if (snippetTags.Length == 0 && text == "") { return default; }
+            if (snippetTags.Length == 0 && text == Span<char>.Empty) { return default; }
 
-            (int position, int length) = snippetsMatch(text, snippetTags.ToArray(), snippetID, startIndex, options);
+            (int position, int length) = snippetCore(text, snippetTags.ToArray(), snippetID, startIndex, options);
 
             if (position == -1 || length == 0)
             { return new StringAndPosition(); }
@@ -1096,7 +1864,7 @@ namespace SmartSharp.TextBuilder
 
         #region ► Model
 
-        private static (int, int) snippetsMatch(ReadOnlySpan<char> text, Span<char> snippet, ReadOnlySpan<char> snippetID, int startIndex, params byte[] options)
+        private static (int, int) snippetCore(ReadOnlySpan<char> text, ReadOnlySpan<char> snippet, ReadOnlySpan<char> snippetID, int startIndex, params byte[] options)
         {
             #region ** Exception : The snippet not contain a '*' character to split open and close tag.
             int splitPos = snippet.IndexOf('*');
@@ -1104,187 +1872,105 @@ namespace SmartSharp.TextBuilder
             if (splitPos == -1)
             { throw new Exception("!Invalid snippet pattern!"); }
 
-            #endregion
+            if(options.Contains(ParamsDynamicChars))
+            { throw new Exception("!Snippet no accept dynamic char!"); }
 
+            #endregion
+                        
             #region ++ Flags e variables
 
-            int openTagCount = -1;
+            int openTagCount = 0;
             int closeTagCount = 0;
-            int occurStart = -1;
+            int occurPos = -1;
             int occurLen = 0;
-            int startPos = 0;
+            int returnPos = -1;
             int snippetIDPos = -1;
             PatternsToMatch toMatch = new PatternsToMatch(snippet, '*');
+            ReadOnlySpan<char> openTag = toMatch[0];
+            ReadOnlySpan<char> closeTag = toMatch[1];
 
             if (toMatch.Count != 2)
             { throw new InvalidCastException("!Snippet pattern mismatch! Just inform open*close tag in pattern."); }
 
-            ReadOnlySpan<char> textToSearch = text.Slice(startIndex);
-
             #endregion
-
-            #region ▼ Parameters and Dynamic chars tasks
-
-            #region + Replace the '*' with a '|' character in snippet pattern.
-            // This is used to matchLitteral match the open or close tags.
-            // Using OR condition between tags, matchLitteral will return the first tag found.
-            // So is possible know if after open tag, the next is the respective close.
-            snippet[splitPos] = '|';
-
-            #endregion
-
-            #region + If Ignore in quote
-
-            if (options.Contains(ParamsIgnoreInQuotes))
-            { textToSearch = markWordsInText(textToSearch.ToArray(), '\''); }
-
-            #endregion
-
-            #region + If Ignore in double quote
-
-            if (options.Contains(ParamsIgnoreInDoubleQuotes))
-            { textToSearch = markWordsInText(textToSearch.ToArray(), '\"'); }
-
-            #endregion
-
-            #region ? Dynamics chars
-
-            //if (options.Contains(ParamsDynamicChars))
-            //{
-            //    if (snippet.IndexOf('#') != -1 || snippetID.IndexOf('#') != -1)
-            //    { textToSearch = markNumbersInText(textToSearch.ToArray()); }
-            //}
-
-            #endregion
-
-            #region + If case insentive
-
-            //if (options.Contains(ParamsIgnoreCase))
-            //{ textToSearch = toLowerText(textToSearch.ToArray()); }
-
-            #endregion
-
-            #endregion
-
+            
             #region + If snippetID is not empty, search for snippetID in open tag.
 
             if (snippetID.Length > 0)
             {
                 // If found, set snippetIDPos to current position.
-                snippetIDPos = textToSearch.IndexOf(snippetID);
-            }
+                //snippetIDPos = text.IndexOf(snippetID);
+                ( snippetIDPos, occurLen ) = matchLitteral(text, snippetID, startIndex, options);
+                occurLen = 0;
 
+                if (snippetIDPos == -1)
+                {
+                    // If not found, set snippetIDPos to -1.
+                    return (-1, 0);
+                }
+            }
             #endregion
 
-            int _position = startIndex;
-
-            while (openTagCount != closeTagCount)
+            for (int pos = startIndex; pos < text.Length; pos++)
             {
+                #region + Search for open and close tag in text and return only the first occurrence of first tag. 
+
+                int tagIndex = 0; // 0 = open tag, 1 = close tag
+
                 #region + Search for open or close tag in text
 
-                (_position, int _len) = matchLitteral(textToSearch, snippet, _position, true);
+                (int openPos, int openLen) = matchLitteral(text, openTag, startIndex, options);
+                (int closePos, int closeLen) = matchLitteral(text, closeTag, startIndex, options);
 
                 #endregion
 
                 #region ** Exception : If not found open or close tag, return -1 and 0.
 
-                if (_position == -1)
+                if (closePos == -1) { break; }
+
+                #endregion
+
+                #endregion
+
+                #region ? Snippet ID informed in parameter and after open tag and before close tag
+
+                if (snippetIDPos != -1)
                 {
-                    if (openTagCount > 0 || closeTagCount > 0)
+                    if ((openPos < snippetIDPos || closePos < snippetIDPos) && openTagCount == 1)
                     {
-                        if (openTagCount > closeTagCount)
-                        { throw new Exception("!Invalid snippet! Exist open tag without respective close tag."); }
-                        else if (closeTagCount > openTagCount)
-                        { throw new Exception("!Invalid snippet! Exist close tag without respective open tag."); }
+                        occurPos = -1; occurLen = 0; returnPos = -1; openTagCount = 0; closeTagCount = 0;
                     }
-                    return (-1, 0);
                 }
 
                 #endregion
 
-                if (textToSearch.Slice(_position, _len).SequenceEqual(toMatch[0]))
+                if ((uint)openPos < (uint)closePos)
                 {
-
-                    #region ! If found open tag, increase openTagCount and set occurStart if not set.
-                    // openTagCount is used to track how many open tags are found.
-
-                    if (openTagCount == -1) { openTagCount = 1; }
-                    else { openTagCount++; }
-
-                    if (occurStart == -1) { occurStart = _position; }
-
+                    #region + Increment open tag counter
+                    openTagCount++;
+                    occurPos = openPos; occurLen = openLen; startIndex = openPos + openLen; tagIndex = 0;
                     #endregion
-
-                    #region + If snippetID is not empty, check if found in open tag.
-
-                    if (snippetIDPos != -1)
-                    {
-                        if (_position < snippetIDPos && snippetIDPos != -1)
-                        {
-                            openTagCount = -1;
-                            _position++;
-                            occurStart = _position;
-                            closeTagCount = 0;
-                            occurLen = 0;
-                            continue;
-                        }
-                        else { snippetIDPos = -1; openTagCount = 2; }
-                    }
-
+                }
+                else
+                {
+                    #region + Increment close tag counter
+                    closeTagCount++;
+                    occurPos = closePos; occurLen = closeLen; startIndex = closePos + closeLen; tagIndex = 1;
                     #endregion
-
                 }
-                else if (textToSearch.Slice(_position, _len).SequenceEqual(toMatch[1]))
-                {
-                    if (snippetIDPos != -1 && startPos < snippetIDPos)
-                    {
-                        #region ! If snippetID parameter is not empty and close tag position in text is before snippetID
-
-                        _position++;
-                        closeTagCount = 0;
-                        openTagCount = -1;
-                        occurLen = 0;
-                        continue;
-
-                        #endregion
-                    }
-                    else if (openTagCount > 0 && openTagCount > closeTagCount)
-                    {
-                        #region ! If found close tag, decrease openTagCount and set occurLen if not set.
-                        //Need openTagCount = closeTagCount to confirm that is last close tag of first open tag.
-
-                        closeTagCount++;
-
-                        #endregion
-                    }
-                    else
-                    {
-                        #region ! If already not found open tag to this snippet
-
-                        _position++;
-                        closeTagCount = 0;
-                        openTagCount = -1;
-                        occurLen = 0;
-                        continue;
-
-                        #endregion
-                    }
-                }
-
-                occurLen = (_position - occurStart) + _len;
-                _position++;
-
-                if (textToSearch.Length <= _position)
-                {
-                    // No more text to search, break the loop.
-                    break;
-                }
+                                
+                #region + Mark the position of first open tag and calculate the length of snippet when all tags are closed.
+                if (returnPos == -1 && tagIndex ==0)
+                { returnPos = occurPos; }
+                #endregion
+                                
+                if (openTagCount != -1 && openTagCount == closeTagCount)
+                { return (returnPos, (occurPos - returnPos) + occurLen); }
             }
 
-            return (occurStart, occurLen);
+            // If not found open tag, return -1 and 0.
+            return (-1, 0);
         }
-
-        #endregion
 
         #endregion
 
@@ -1309,11 +1995,6 @@ namespace SmartSharp.TextBuilder
 
         public static string SnippetReplaceFirst(string text, string openAndCloseTags, string snippetID, string toRepalce, int startIndex, params byte[] options)
         {
-            ReadOnlySpan<char> _text = text;
-            ReadOnlySpan<char> _snippetID = snippetID;
-            ReadOnlySpan<char> _sequenceToMatch = toRepalce;
-            ReadOnlySpan<char> _toReplace = toRepalce;
-
             StringAndPosition matchReturn = Snippet(text, openAndCloseTags, snippetID, startIndex, options);
             ReadOnlySpan<char> result = insert(text, toRepalce, matchReturn.Position, matchReturn.Text.Length, true);
 
@@ -1331,10 +2012,6 @@ namespace SmartSharp.TextBuilder
 
         public static string ReplaceSnippetLast(string text, string openAndCloseTags, string snippetID, string toRepalce, int startIndex, params byte[] options)
         {
-            ReadOnlySpan<char> _text = text;
-            ReadOnlySpan<char> _openAndCloseTags = openAndCloseTags;
-            ReadOnlySpan<char> _snippetID = snippetID;
-            ReadOnlySpan<char> _toReplace = toRepalce;
             ReadOnlySpan<char> result = default;
             int position = 0;
             int len = 0;
@@ -1390,7 +2067,9 @@ namespace SmartSharp.TextBuilder
 
         public static string InsertSnippet(string text, string toInsert, int positionIndex)
         {
-            return insert(text, toInsert, positionIndex, toInsert.Length, false).ToString();
+            var result = insert(text, toInsert, positionIndex, toInsert.Length, false);
+
+            return result.ToString();
         }
 
         #endregion
@@ -1401,7 +2080,9 @@ namespace SmartSharp.TextBuilder
         {
             StringAndPosition matchReturn = Match(text, beforeIt, options);
             int position = matchReturn.Position;
-            return insert(text, toInsert, position, toInsert.Length, false).ToString();
+            var result = insert(text, toInsert, position, toInsert.Length, false);
+
+            return result.ToString();
         }
 
         #endregion
@@ -1412,19 +2093,121 @@ namespace SmartSharp.TextBuilder
         {
             StringAndPosition matchReturn = Match(text, afterIt, options);
             int position = matchReturn.Position + matchReturn.Text.Length;
-            return insert(text, toInsert, position, toInsert.Length, false).ToString();
+            var result = insert(text, toInsert, position, toInsert.Length, false);
+
+            return result.ToString();
         }
 
         #endregion
 
         #endregion
 
+        #region ▼ Remove
+
+        #region ► RemoveFirst
+
+        public static string SnippetRemoveFirst(string text, string openAndCloseTags, params byte[] options)
+        {
+            return SnippetRemoveFirst(text, openAndCloseTags, "", 0, options);
+        }
+
+        public static string SnippetRemoveFirst(string text, string openAndCloseTags, int startIndex, params byte[] options)
+        {
+            return SnippetRemoveFirst(text, openAndCloseTags, "", startIndex, options);
+        }
+                
+        public static string SnippetRemoveFirst(string text, string openAndCloseTags, string snippetID, int startIndex, params byte[] options)
+        {
+            StringAndPosition matchReturn = Snippet(text, openAndCloseTags, snippetID, startIndex, options);
+            ReadOnlySpan<char> result = insert(text, "", matchReturn.Position, matchReturn.Text.Length, true);
+
+            return result.ToString();
+        }
+
         #endregion
 
-        #region » IsSeparator
-        private static bool IsSeparator(char c) => c == ' ' || c == '!' || c == '?' || c == '.' || c == ';' ||
-                                    c == ':' || c == ',' || c == '|' || c == '(' || c == ')' || c == '[' || c == ']'
-                                    || c == '{' || c == '}' || c == '\n' || c == '\t' || c == '\r';
+        #region ► RemoveLast
+
+        public static string RemoveSnippetLast(string text, string openAndCloseTags, params byte[] options)
+        {
+            return RemoveSnippetLast(text, openAndCloseTags, "", 0, options);
+        }
+
+        public static string RemoveSnippetLast(string text, string openAndCloseTags, int startIndex, params byte[] options)
+        {
+            return RemoveSnippetLast(text, openAndCloseTags, "", startIndex, options);
+        }
+
+        public static string RemoveSnippetLast(string text, string openAndCloseTags, string snippetID, int startIndex, params byte[] options)
+        {
+            ReadOnlySpan<char> result = default;
+            int position = 0;
+            int len = 0;
+
+            while (position != -1)
+            {
+                StringAndPosition matchReturn = Snippet(text, openAndCloseTags, snippetID, startIndex, options);
+                position = matchReturn.Position;
+
+                if (matchReturn.Position != -1)
+                { startIndex = matchReturn.Position; len = matchReturn.Text.Length; }
+            }
+
+            result = insert(text, "", startIndex, len, true);
+
+            return result.ToString();
+        }
+
+        #endregion
+
+        #region ► Remove
+
+        public static string RemoveSnippet(string text, string openAndCloseTags, params byte[] options)
+        {
+            return RemoveSnippet(text, openAndCloseTags, "", 0, options);
+        }
+
+        public static string RemoveSnippet(string text, string openAndCloseTags, string snippetID, int startIndex, params byte[] options)
+        {
+            ReadOnlySpan<char> _text = text;
+            ReadOnlySpan<char> _openAndCloseTags = openAndCloseTags;
+            ReadOnlySpan<char> result = default;
+            int position = 0;
+
+            while (position != -1)
+            {
+                StringAndPosition matchReturn = Snippet(text, openAndCloseTags, startIndex, options);
+                position = matchReturn.Position;
+                result = insert(text, "", matchReturn.Position, matchReturn.Text.Length, true);
+            }
+
+            return result.ToString();
+        }
+
+        #endregion
+
+        #endregion
+
+        #region ▼ Contains
+
+        public static bool ContainsSnippet(string text, string openAndCloseTags, params byte[] options)
+        {
+            return ContainsSnippet(text, openAndCloseTags, "", 0, options);
+        }
+
+        public static bool ContainsSnippet(string text, string openAndCloseTags, int startIndex, params byte[] options)
+        {
+            return ContainsSnippet(text, openAndCloseTags, "", startIndex, options);
+        }
+
+        public static bool ContainsSnippet(string text, string openAndCloseTags, string snippetID, int startIndex, params byte[] options)
+        {                        
+            StringAndPosition matchReturn = Snippet(text, openAndCloseTags, startIndex, options);  
+            return matchReturn.Position !=-1;
+        }
+
+        #endregion
+
         #endregion
     }
 }
