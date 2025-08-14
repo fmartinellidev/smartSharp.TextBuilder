@@ -62,7 +62,7 @@ namespace TextBuilder_Tester
 
                       A. PARTIES
                       A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           with CNPJ under number 74.099.252/0001-56, headquartered at Avenida José Ferreira 
                            Batista react, nº2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
                            represented in this act in accordance with its Articles of incorporation, in the capacity 
                            of Owner and Developer, hereinafter simply referred to as SELLER.
@@ -109,7 +109,7 @@ namespace TextBuilder_Tester
                            for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.";
 
             tinyText = @"A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private action law company, duly reactor registered 
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
                            with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
                            Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
                            represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
@@ -158,7 +158,11 @@ namespace TextBuilder_Tester
         public void Test01_Match()
         {
            StringAndPosition firstMatch = TextBuilder.Match(text,"Marie Doe||Jane Doe||Jack||John Doe");
-            Console.WriteLine(firstMatch.Text);
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else
+            { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 2ms, Memory: 352 bytes
 
@@ -169,7 +173,11 @@ namespace TextBuilder_Tester
         public void Test02_Match_IgnoreSingleQuotes()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "John Doe||Marie Doe", TextBuilder.ParamsIgnoreInQuotes);
-            Console.WriteLine(firstMatch.Text);
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else
+            { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 3ms, Memory: 352 bytes
 
@@ -179,8 +187,12 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02b_Match_IgnoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "john doe||marie doe");
-            Console.WriteLine(firstMatch.Text);
+            StringAndPosition firstMatch = TextBuilder.Match(text, "john doe||marie doe", TextBuilder.ParamsIgnoreCaseSensitive);
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else
+            { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 2ms, Memory: 352 bytes
 
@@ -192,7 +204,7 @@ namespace TextBuilder_Tester
         #region ► Pattern Match
 
         [Test]
-        public void Test03_MatchPattern_PatternInStart()
+        public void Test03a_MatchPattern_PatternInStart()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, @"*residential");
             Console.WriteLine(firstMatch.Text);
@@ -230,7 +242,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test04_MatchPattern_PatternInMiddle()
+        public void Test03b_MatchPattern_PatternInMiddle()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "J*ner");
 
@@ -243,22 +255,9 @@ namespace TextBuilder_Tester
             //John Doe Towner*/
 
         }
-
+                
         [Test]
-        public void Test04b_MatchPattern_PatternInMiddle()
-        {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "Name*Jard*.");
-            Console.WriteLine(firstMatch.Text);
-
-            //Duration: 2ms, Memory: 656 bytes
-
-            //RETURN:
-            // Name: Jardim Barcelona, cidade de Araraquara/SP. - 2792 */
-
-        }
-
-        [Test]
-        public void Test05_MatchPattern_PatternInEnd()
+        public void Test03c_MatchPattern_PatternInEnd()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "B.3.*");
 
@@ -280,16 +279,29 @@ namespace TextBuilder_Tester
                            for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.*/
 
         }
-        
+
         [Test]
-        public void Test06_MatchPattern_MoreThanOnePattern()
+        public void Test03d_MatchPattern_PatternInMiddleAndEnd()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "Name*Jard*.");
+            Console.WriteLine(firstMatch.Text);
+
+            //Duration: 2ms, Memory: 656 bytes
+
+            //RETURN:
+            // Name: Jardim Barcelona, cidade de Araraquara/SP. - 2792 */
+
+        }
+
+        [Test]
+        public void Test03e_MatchPattern_MoreThanOnePattern()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "Name:*cidade de *.");
 
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
-            //Duration: 3ms, Memory: 656 bytes
+            //Duration: 2ms, Memory: 656 bytes
 
             //RETURN:
             // Name: Jardim Barcelona, cidade de Araraquara/SP. */
@@ -297,7 +309,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test07_MatchPattern_PatternWithOrCondition_wrong_OR_use()
+        public void Test03f_MatchPattern_PatternWithOrCondition_wrong_OR_use()
         {
             /*Wrong 'OR" condition use. Did put '@' after wildcard and before 'OR' char condition. 
              * So the '@' is alone and it is a more one option in condition and not a char linked 
@@ -373,7 +385,7 @@ namespace TextBuilder_Tester
         [Test]
         public void Test07e_MatchPattern_PatternWithOrConditionIgnoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack");
+            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack", TextBuilder.ParamsIgnoreCaseSensitive);
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
@@ -398,8 +410,9 @@ namespace TextBuilder_Tester
 
             //Duration: 2ms, Memory: 384 bytes
 
-            //RETURN: act - 108
-            //Result is a piece of "reactor" word in tinyText. Phrase in text: "private law company, duly re[act]or registered"
+            //RETURN: act - 90
+            //Result is a piece of "reactor" word in tinyText.
+            //Phrase in text: " A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private re[act]ion law company"
         }
 
         [Test]
@@ -412,9 +425,11 @@ namespace TextBuilder_Tester
 
             //Duration: 2ms, Memory: 384 bytes
 
-            //RETURN: act - 289
-            /*Return occurrence is a part of "action" word in tinyText. Phrase in text: "Avenida José Ferreira 
-            Batista react, nº 2281, [act]ion room 02"*/
+            //RETURN: act - 297
+            /*Return occurrence is the apart of "react" word in tinyText. 
+            Phrase in text: "Batista re[act], nº 2281, action room 02, Bairro Ipanema, in this City and District 
+            of Araçatuba-SP"*/
+
         }
 
         [Test]
@@ -431,9 +446,9 @@ namespace TextBuilder_Tester
 
             //Duration: 2ms, Memory: 384 bytes
 
-            //RETURN: act - 289
-            /*Return occurrence is a part of "action" word in tinyText. Phrase in text: "Avenida José Ferreira 
-            Batista react, nº 2281, [act]ion room 02"*/
+            //RETURN: act - 298
+            /*The same of previous exemple, but since user just want return the word, it used a 'startIndexReturn' paramater and with it can remove a 
+             frist char of occurence return that this case is a space.*/
         }
 
         [Test]
@@ -447,9 +462,9 @@ namespace TextBuilder_Tester
 
             //Duration: 2ms, Memory: 384 bytes
 
-            //RETURN: act - 275
-            /*Return occurrence is a part of "react" word in tinyText. Phrase in text: " Avenida José Ferreira 
-            Batista re[act], nº 2281"*/
+            //RETURN: act, - 284
+            /*Return occurrence is a part of "action" word in tinyText. 
+             *Phrase in text: "Avenida José Ferreira Batista react, nº 2281, [act]ion room 02"*/
         }
 
         [Test]
@@ -463,8 +478,9 @@ namespace TextBuilder_Tester
 
             //Duration: 2ms, Memory: 352 bytes
 
-            //RETURN: act - 413
-            //Return is exactly word "act" in tinyText. Phrase in text: "represented in this [act] in accordance"
+            //RETURN: act - 421
+            //Return is exactly word "act" in tinyText.
+            //Phrase in text: "represented in this [act] in accordance and notion with its Articles"
         }
 
         [Test]
@@ -478,14 +494,30 @@ namespace TextBuilder_Tester
 
             //Duration: 2ms, Memory: 352 bytes
 
-            //RETURN: act - 413
-            //Return is exactly word "act" in tinyText. Phrase in text: "represented in this [act] in accordance"
+            //RETURN: act - 422
+            //Same of previous exemple, but used 'startIndexReturn' and 'endCutLenReturn' to remove start and end
+            //separator of occurence return"
         }
 
         [Test]
         public void Test09a_MatchDynamic_startLinkByWord()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "~on", TextBuilder.ParamsDynamicChars);
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
+
+            //Duration: 2ms, Memory: 352 bytes
+
+            //RETURN:
+            /*action*/
+        }
+
+        [Test]
+        public void Test09a_MatchDynamic_startLinkByWord_ignoreCase()
+        {
+            StringAndPosition firstMatch = TextBuilder.Match(text, "~on", TextBuilder.ParamsDynamicChars, TextBuilder.ParamsIgnoreCaseSensitive);
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -509,7 +541,7 @@ namespace TextBuilder_Tester
             //Duration: 2ms, Memory: 352 bytes
 
             //RETURN:
-            /*action*/
+            /*react*/
         }
 
         [Test]
@@ -524,7 +556,7 @@ namespace TextBuilder_Tester
             //Duration: 3ms, Memory: 352 bytes
 
             //RETURN:
-            /*registered*/
+            /*action*/
         }
 
         [Test]
@@ -545,11 +577,11 @@ namespace TextBuilder_Tester
         [Test]
         public void Test10a_MatchDynamic_NumbersChar()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "###.###.###-##", TextBuilder.ParamsDynamicChars);
+            StringAndPosition firstMatch = TextBuilder.Match(text, "#.#.#/#-#", TextBuilder.ParamsDynamicChars);
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            else { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 2ms, Memory: 456 bytes
 
@@ -560,11 +592,11 @@ namespace TextBuilder_Tester
         [Test]
         public void Test10b_MatchDynamic_StartNumbersChar()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "nº####", TextBuilder.ParamsDynamicChars);
+            StringAndPosition firstMatch = TextBuilder.Match(text, "nº#", TextBuilder.ParamsDynamicChars);
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            else { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 2ms, Memory: 352 bytes
 
@@ -579,7 +611,7 @@ namespace TextBuilder_Tester
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            else { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 2ms, Memory: 352 bytes
 
