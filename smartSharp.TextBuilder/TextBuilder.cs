@@ -1,8 +1,5 @@
 ﻿using System.Buffers;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
 using System.Reflection;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace SmartSharp.TextBuilder
 {
