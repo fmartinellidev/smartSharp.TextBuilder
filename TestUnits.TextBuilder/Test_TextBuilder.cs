@@ -180,7 +180,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test02_Match_IgnoreSingleQuotes()
+        public void Test01a_Match_IgnoreSingleQuotes()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "John Doe||Marie Doe", TextBuilder.ParamsIgnoreInQuotes);
 
@@ -195,7 +195,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test02b_Match_IgnoreCase()
+        public void Test01b_Match_IgnoreCase()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "john doe||marie doe", TextBuilder.ParamsIgnoreCaseSensitive);
 
@@ -214,7 +214,7 @@ namespace TextBuilder_Tester
         #region ► Pattern Match
 
         [Test]
-        public void Test03a_MatchPattern_PatternInStart()
+        public void Test02_MatchPattern_PatternInStart()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, @"*residential");
             Console.WriteLine(firstMatch.Text);
@@ -252,7 +252,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test03b_MatchPattern_PatternInMiddle()
+        public void Test02a_MatchPattern_PatternInMiddle()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "J*ner");
 
@@ -267,7 +267,7 @@ namespace TextBuilder_Tester
         }
                 
         [Test]
-        public void Test03c_MatchPattern_PatternInEnd()
+        public void Test02b_MatchPattern_PatternInEnd()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "B.3.*");
 
@@ -291,7 +291,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test03d_MatchPattern_PatternInMiddleAndEnd()
+        public void Test02c_MatchPattern_PatternInMiddleAndEnd()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "Name*Jard*.");
             Console.WriteLine(firstMatch.Text);
@@ -304,7 +304,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test03e_MatchPattern_MoreThanOnePattern()
+        public void Test02d_MatchPattern_MoreThanOnePattern()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "Name:*cidade de *.");
 
@@ -319,7 +319,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test03f_MatchPattern_PatternWithOrCondition_wrong_OR_use()
+        public void Test02e_MatchPattern_PatternWithOrCondition_wrong_OR_use()
         {
             /*Wrong 'OR" condition use. Did put '@' after wildcard and before 'OR' char condition. 
              * So the '@' is alone and it is a more one option in condition and not a char linked 
@@ -352,7 +352,7 @@ namespace TextBuilder_Tester
         //}
 
         [Test]
-        public void Test07b_MatchPattern_PatternWithOrCondition()
+        public void Test02f_MatchPattern_PatternWithOrCondition()
         {
             /*This test is using right the 'OR' condition.*/
             StringAndPosition firstMatch = TextBuilder.Match(text, @"email*@hotmail.com|@gmail.com|@yahoo.com");
@@ -366,7 +366,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test07c_MatchPattern_PatternWithOrCondition()
+        public void Test02g_MatchPattern_PatternWithOrCondition()
         {
             /*Is sure exist a more better form of do This pattern*/
             StringAndPosition firstMatch = TextBuilder.Match(text, @"email*.com|.com.br");
@@ -380,7 +380,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test07d_MatchPattern_PatternWithOrCondition()
+        public void Test02h_MatchPattern_PatternWithOrCondition()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack* Mcan| Albert| Towner");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
@@ -393,7 +393,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test07e_MatchPattern_PatternWithOrConditionIgnoreCase()
+        public void Test02i_MatchPattern_PatternWithOrConditionIgnoreCase()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack", TextBuilder.ParamsIgnoreCaseSensitive);
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
@@ -410,32 +410,32 @@ namespace TextBuilder_Tester
         #region ► Dynamic Match
 
         [Test]
-        public void Test08a_Match_SeparatorWord_without_separator()
+        public void Test03_Match_SeparatorWord_without_separator()
         {
             StringAndPosition firstMatch = TextBuilder.Match(tinyText, "act");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text); }
+            else { Console.WriteLine("[" + firstMatch.Text + "]"); }
 
             //Duration: 2ms, Memory: 352 bytes
 
-            //RETURN: act - 90
+            //RETURN: [act]
             //Result is a piece of "reactor" word in tinyText.
             //Phrase in text: " A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private re[act]ion law company"
         }
 
         [Test]
-        public void Test08b_Match_SeparatorWord_in_start()
+        public void Test03a_Match_SeparatorWord_in_start()
         {
             StringAndPosition firstMatch = TextBuilder.Match(testText, "_act", TextBuilder.ParamsDynamicChars);
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text); }
+            else { Console.WriteLine("[" + firstMatch.Text + "]"); }
 
             //Duration: 2ms, Memory: 384 bytes
 
-            //RETURN: act - 297
+            //RETURN: [ act] 
             /*Return occurrence is the apart of "react" word in tinyText. 
             Phrase in text: "Batista re[act], nº 2281, action room 02, Bairro Ipanema, in this City and District 
             of Araçatuba-SP"*/
@@ -443,7 +443,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test08b_Match_SeparatorWord_in_start_CutStartChar()
+        public void Test03b_Match_SeparatorWord_in_start_CutStartChar()
         {
             StringAndPosition firstMatch = TextBuilder.Match( testText, 
                                                  "_act", 
@@ -452,65 +452,65 @@ namespace TextBuilder_Tester
                                                  TextBuilder.ParamsDynamicChars);
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            else { Console.WriteLine("[" + firstMatch.Text + "] - " + firstMatch.Position); }
 
             //Duration: 2ms, Memory: 384 bytes
 
-            //RETURN: act - 298
+            //RETURN: [act] - 161
             /*The same of previous exemple, but since user just want return the word, it used a 'startIndexReturn' paramater and with it can remove a 
              frist char of occurence return that this case is a space.*/
         }
 
         [Test]
-        public void Test08c_Match_SeparatorWord_separator_in_end()
+        public void Test03c_Match_SeparatorWord_separator_in_end()
         {
             StringAndPosition firstMatch = TextBuilder.Match(testText, "act_", TextBuilder.ParamsDynamicChars);
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            else { Console.WriteLine("[" + firstMatch.Text + "] - " + firstMatch.Position); }
 
             //Duration: 2ms, Memory: 384 bytes
 
-            //RETURN: act, - 284
+            //RETURN: [act ] - 174
             /*Return occurrence is a part of "action" word in tinyText. 
              *Phrase in text: "Avenida José Ferreira Batista react, nº 2281, [act]ion room 02"*/
         }
 
         [Test]
-        public void Test08d_Match_SeparatorWord_separator_start_end()
+        public void Test03d_Match_SeparatorWord_separator_start_end()
         {
             StringAndPosition firstMatch = TextBuilder.Match(testText, "_act_", TextBuilder.ParamsDynamicChars);
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            else { Console.WriteLine("[" + firstMatch.Text + "] - " + firstMatch.Position); }
 
             //Duration: 2ms, Memory: 352 bytes
 
-            //RETURN: act - 421
+            //RETURN:[ act ] - 195
             //Return is exactly word "act" in tinyText.
             //Phrase in text: "represented in this [act] in accordance and notion with its Articles"
         }
 
         [Test]
-        public void Test08d_Match_SeparatorWord_separator_start_end_CutStartEndChar()
+        public void Test03d_Match_SeparatorWord_separator_start_end_CutStartEndChar()
         {
             StringAndPosition firstMatch = TextBuilder.Match(testText, "_act_",0, 1, 1, TextBuilder.ParamsDynamicChars);
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            else { Console.WriteLine("[" + firstMatch.Text + "] - " + firstMatch.Position); }
 
             //Duration: 2ms, Memory: 352 bytes
 
-            //RETURN: act - 422
+            //RETURN: [act] - 196
             //Same of previous exemple, but used 'startIndexReturn' and 'endCutLenReturn' to remove start and end
             //separator of occurence return"
         }
 
         [Test]
-        public void Test09a_MatchDynamic_startCompleteWord()
+        public void Test04_MatchDynamic_startCompleteWord()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "~on", TextBuilder.ParamsDynamicChars);
 
@@ -525,7 +525,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test09b_MatchDynamic_EndCompleteWord()
+        public void Test04a_MatchDynamic_EndCompleteWord()
         {
             StringAndPosition firstMatch = TextBuilder.Match(testText, "act~", TextBuilder.ParamsDynamicChars);
 
@@ -540,7 +540,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test09c_MatchDynamic_startCompleteWord_ignoreCase()
+        public void Test04b_MatchDynamic_startCompleteWord_ignoreCase()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "~on", TextBuilder.ParamsDynamicChars, TextBuilder.ParamsIgnoreCaseSensitive);
 
@@ -551,11 +551,11 @@ namespace TextBuilder_Tester
             //Duration: 2ms, Memory: 352 bytes
 
             //RETURN:
-            /*action*/
+            /*SUBDIVISION*/
         }
-                                
+
         [Test]
-        public void Test09e_MatchDynamic_LinkByWord()
+        public void Test04c_MatchDynamic_StartAndEndCompleteWord()
         {
             StringAndPosition firstMatch = TextBuilder.Match(testText, "~ti~", TextBuilder.ParamsDynamicChars);
 
@@ -566,11 +566,11 @@ namespace TextBuilder_Tester
             //Duration: 3ms, Memory: 352 bytes
 
             //RETURN:
-            /*District - 549*/
+            /*national - 88*/
         }
 
         [Test]
-        public void Test10a_MatchDynamic_NumbersChar()
+        public void Test05_MatchDynamic_NumbersChar()
         {
             StringAndPosition firstMatch = TextBuilder.Match(testText, "#.#.#-#", TextBuilder.ParamsDynamicChars);
 
@@ -578,14 +578,14 @@ namespace TextBuilder_Tester
             { Console.WriteLine("Match not found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
-            //Duration: 2ms, Memory: 456 bytes
+            //Duration: 2ms, Memory: 352 bytes
 
             //RETURN:
-            /*675.019.610-18 - 984*/
+            /*675.019.610-18*/
         }
 
         [Test]
-        public void Test10b_MatchDynamic_StartNumbersChar()
+        public void Test05a_MatchDynamic_StartNumbersChar()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "nº#", TextBuilder.ParamsDynamicChars);
 
@@ -596,11 +596,11 @@ namespace TextBuilder_Tester
             //Duration: 2ms, Memory: 352 bytes
 
             //RETURN:
-            /*nº2281 - 491*/
+            /*nº2281*/
         }
 
         [Test]
-        public void Test10c_MatchDynamic_EndNumbersChar()
+        public void Test05b_MatchDynamic_EndNumbersChar()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "B.#.", TextBuilder.ParamsDynamicChars);
 
@@ -611,11 +611,11 @@ namespace TextBuilder_Tester
             //Duration: 2ms, Memory: 352 bytes
 
             //RETURN:
-            /*B.1. - 2016*/
+            /*B.1.*/
         }
 
         [Test]
-        public void Test11_MatchDynamic_DynmaicsAndWildcard()
+        public void Test06_MatchDynamic_DynmaicsAndWildcard()
         {
             StringAndPosition firstMatch = TextBuilder.Match(text, "Road System: #*m²", TextBuilder.ParamsDynamicChars);
 
@@ -636,7 +636,7 @@ namespace TextBuilder_Tester
         #region ▼ Snippets
 
         [Test]
-        public void Test13_Snippet()
+        public void Test07_Snippet()
         {
             StringAndPosition snippetMatch = TextBuilder.Snippet(html, @"<div*</div>");
             
@@ -664,7 +664,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test15_SnippetID()
+        public void Test07a_SnippetID()
         {
             StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div *</div>", "id='divTemp'");
             
@@ -676,7 +676,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test16_Snippet_IgnoreApotrophesContent()
+        public void Test07b_Snippet_IgnoreApotrophesContent()
         {
             StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div *</div>", "divTemp", TextBuilder.ParamsIgnoreInQuotes);
 
@@ -691,7 +691,7 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test17_Snippet_IgnoreCase()
+        public void Test07c_Snippet_IgnoreCase()
         {
             StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div *</div>", "'divtemp'", TextBuilder.ParamsIgnoreCaseSensitive);
 
@@ -715,61 +715,464 @@ namespace TextBuilder_Tester
 
         #region ▼ Models
 
-        #region Repalce
+        #region ▼ Repalce
 
         [Test]
-        public void Test22_Replace()
+        public void Test08_ReplaceFirst()
         {
-            string replaceMatch = TextBuilder.Replace(tinyText, "Joh*Towner", "Bruce Banner");
+            string replaceMatch = TextBuilder.ReplaceFirst(tinyText, "Joh*Towner", "Bruce Banner");
             Console.WriteLine(replaceMatch);
 
-            //Duration: 2ms, Memory: 5968 bytes
+            //Duration: 3ms, Memory: 6152 bytes
 
             /*RETURN: 
-             * A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
                            with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
                            Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance with its Articles of Incorporation, in the capacity 
-                           of Owner and Developer, hereinafter simply referred to as SELLER.
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
                       A.2. PROMISING BUYER(S), married with 'Bruce Banner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
                            CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
                            Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
                            providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Silva, registered under CPF number 012.869.980-93, 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
                            RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
                            hereinafter simply referred to as BUYER.
              */
         }
 
         [Test]
-        public void Test23_Replace_with_count()
+        public void Test08a_ReplaceLast()
         {
-            string replaceMatch = TextBuilder.Replace(tinyText,
-                                         "D~Towner", 
-                                         "Doe Silva",
-                                         2);
+            string replaceMatch = TextBuilder.ReplaceLast(tinyText, "Joh*Towner", "Bruce Banner");
             Console.WriteLine(replaceMatch);
 
-            //Duration: 2ms, Memory: 5968 bytes
+            //Duration: 3ms, Memory: 6152 bytes
 
             /*RETURN: 
-             * A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
                            with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
                            Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance with its Articles of Incorporation, in the capacity 
-                           of Owner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'Bruce Banner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
                            CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
                            Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
                            providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Silva, registered under CPF number 012.869.980-93, 
+                           email marie@gmail.com; married to Bruce Banner, registered under CPF number 012.869.980-93, 
                            RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
                            hereinafter simply referred to as BUYER.
              */
         }
-        
+
+        [Test]
+        public void Test08b_Replace()
+        {
+            string replaceMatch = TextBuilder.Replace(tinyText,"D*Towner", "Wayne Silva");
+            Console.WriteLine(replaceMatch);
+
+            //Duration: 3ms, Memory: 6184 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to Bruce Banner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        #endregion
+
+        #region ▼ Insert
+
+        [Test]
+        public void Test09_Insert()
+        {
+            string replaceMatch = TextBuilder.Insert(tinyText, " the client ", 686);
+            Console.WriteLine(replaceMatch);
+
+            //Duration: 1ms, Memory: 6216 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner the client ' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        [Test]
+        public void Test09a_InsertBefore()
+        {
+            string replaceMatch = TextBuilder.InsertBefore(tinyText, " the respected sr ", "John Doe");
+            Console.WriteLine(replaceMatch);
+
+            //Duration: 3ms, Memory: 6224 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with ' the respected sr John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        [Test]
+        public void Test09b_InsertAfter()
+        {
+            string replaceMatch = TextBuilder.InsertAfter(tinyText, " the ms client ", "Marie Doe");
+            Console.WriteLine(replaceMatch);
+
+            //Duration: 3ms, Memory: 6232 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe the ms client  Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        #endregion
+
+        #region ▼ Remove
+
+        [Test]
+        public void Test10_RemoveFirst()
+        {
+            string replaceMatch = TextBuilder.RemoveFirst(tinyText, "John ");
+            Console.WriteLine(replaceMatch);
+
+            //Duration: 1ms, Memory: 6152 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        [Test]
+        public void Test10a_RemoveLast()
+        {
+            string replaceMatch = TextBuilder.RemoveLast(tinyText, "John ");
+            Console.WriteLine(replaceMatch);
+
+            //Duration: 3ms, Memory: 6152 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        [Test]
+        public void Test10b_Remove()
+        {
+            string replaceMatch = TextBuilder.Remove(tinyText, "John ");
+            Console.WriteLine(replaceMatch);
+
+            //Duration: 3ms, Memory: 6152 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        #endregion
+
+        #region ▼ Contains
+
+        [Test]
+        public void Test11_Contains()
+        {
+            bool returnContains = TextBuilder.Contains(tinyText, "John ");
+            Console.WriteLine(returnContains);
+
+            //Duration: 3ms, Memory: 352 bytes
+
+            /*RETURN: 
+             
+             */
+        }
+
+        #endregion
+
+        #region ▼ ToLower
+
+        [Test]
+        public void Test12_ToLower()
+        {
+            string returnToLower= TextBuilder.ToLowerChar(tinyText, 'J');
+            Console.WriteLine(returnToLower);
+
+            //Duration: 1ms, Memory: 6144 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPj under number 22.724.722/0001-21, headquartered at Avenida josé Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'john Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to john Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        [Test]
+        public void Test12a_ToLowerMatch()
+        {
+            string returnToLower = TextBuilder.ToLowerMatch(tinyText, "LO*CIAL");
+            Console.WriteLine(returnToLower);
+
+            //Duration: 1ms, Memory: 6144 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. loteamento residencial BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        [Test]
+        public void Test12b_ToLowerIgnoreSnippet()
+        {
+            string returnToLower = TextBuilder.ToLowerIgnoreInSnippet(tinyText, ("A.1.", "SELLER"));
+            Console.WriteLine(returnToLower);
+
+            //Duration: 1ms, Memory: 6144 bytes
+
+            /*RETURN: 
+             a. parties
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      a.2. promising buyer(s), married with 'john doe towner' , marie doe towner is brazilian national, broker, married, registered under 
+                           cpf number 675.019.610-18, rg number 23.300.225-3 ssp, residing at rua xv de novembro, 3456, 
+                           apt. 21 c, centro district, postal code 04021-002, located in the city of são paulo/sp, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to john doe towner, registered under cpf number 012.869.980-93, 
+                           rg number 102.456.543-2 ssp, in partial community property regime, brazilian national, lawyer, 
+                           hereinafter simply referred to as buyer.
+             */
+        }
+
+        [Test]
+        public void Test12c_ToLowerOnlyInSnippet()
+        {
+            string returnToLower = TextBuilder.ToLowerOnlyInSnippet(tinyText, ("A.1.", "SELLER"));
+            Console.WriteLine(returnToLower);
+
+            //Duration: 1ms, Memory: 6144 bytes
+
+            /*RETURN: 
+             A.1. loteamento residencial barcelona ltda, a private reaction law company, duly reactor registered 
+                           with cnpj under number 22.724.722/0001-21, headquartered at avenida josé ferreira 
+                           batista react, nº 2281, action room 02, bairro ipanema, in this city and district of araçatuba-sp, 
+                           represented in this act in accordance and notion with its articles of incorporation, in the capacity 
+                           of louis doe towner and developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        #endregion
+
+        #region ▼ ToUpper
+
+        [Test]
+        public void Test13_ToUpper()
+        {
+            string returnToLower = TextBuilder.ToUpperChar(tinyText, 'o');
+            Console.WriteLine(returnToLower);
+
+            //Duration: 1ms, Memory: 6144 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPj under number 22.724.722/0001-21, headquartered at Avenida josé Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'john Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to john Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        [Test]
+        public void Test13a_ToUpperMatch()
+        {
+            string returnToLower = TextBuilder.ToUpperMatch(tinyText, "Jo*Towner");
+            Console.WriteLine(returnToLower);
+
+            //Duration: 3ms, Memory: 6144 bytes
+
+            /*RETURN: 
+             A. PARTIES
+                      A.1. loteamento residencial BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
+        [Test]
+        public void Test13b_ToUpperIgnoreSnippet()
+        {
+            string returnToLower = TextBuilder.ToLowerIgnoreInSnippet(tinyText, ("A.1.", "SELLER"));
+            Console.WriteLine(returnToLower);
+
+            //Duration: 1ms, Memory: 6144 bytes
+
+            /*RETURN: 
+             a. parties
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+                      a.2. promising buyer(s), married with 'john doe towner' , marie doe towner is brazilian national, broker, married, registered under 
+                           cpf number 675.019.610-18, rg number 23.300.225-3 ssp, residing at rua xv de novembro, 3456, 
+                           apt. 21 c, centro district, postal code 04021-002, located in the city of são paulo/sp, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to john doe towner, registered under cpf number 012.869.980-93, 
+                           rg number 102.456.543-2 ssp, in partial community property regime, brazilian national, lawyer, 
+                           hereinafter simply referred to as buyer.
+             */
+        }
+
+        [Test]
+        public void Test13c_ToUpperOnlyInSnippet()
+        {
+            string returnToLower = TextBuilder.ToLowerOnlyInSnippet(tinyText, ("A.1.", "SELLER"));
+            Console.WriteLine(returnToLower);
+
+            //Duration: 1ms, Memory: 6144 bytes
+
+            /*RETURN: 
+             A.1. loteamento residencial barcelona ltda, a private reaction law company, duly reactor registered 
+                           with cnpj under number 22.724.722/0001-21, headquartered at avenida josé ferreira 
+                           batista react, nº 2281, action room 02, bairro ipanema, in this city and district of araçatuba-sp, 
+                           represented in this act in accordance and notion with its articles of incorporation, in the capacity 
+                           of louis doe towner and developer, hereinafter simply referred to as SELLER.
+                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+                           hereinafter simply referred to as BUYER.
+             */
+        }
+
         #endregion
 
         #endregion

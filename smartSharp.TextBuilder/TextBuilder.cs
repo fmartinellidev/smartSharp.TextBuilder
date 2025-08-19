@@ -1090,16 +1090,34 @@ namespace SmartSharp.TextBuilder
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Parms options</param>
         /// <returns></returns>
-        public static string ToLowerMatch(string text, string sequenceToMatch, int startIndex, params byte[] options)
+        public static string ToLowerMatch(string text, string sequenceToMatch, params byte[] options)
         {
             ReadOnlySpan<char> _text = text;
             ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+            ReadOnlySpan<char> result = text;
 
-            StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
+            StringAndPosition matchReturn = match(result, sequenceToMatch, 0, 0, 0, options);
 
-            matchReturn.Text = matchReturn.Text.ToLower();
+            if (matchReturn.Position == -1)
+            {
+                return text; // No match found, return original text
+            }
 
-            ReadOnlySpan<char> result = insert(text, matchReturn.Text, matchReturn.Position, matchReturn.Text.Length, true);
+            int pos = matchReturn.Position;
+            int len = matchReturn.Text.Length;
+
+            for (; pos < result.Length; pos++)
+            {
+                result = insert(result, matchReturn.Text.ToLower(), pos, len, true);
+
+                pos += len - 1;
+
+                (pos, len) = indexOf(result, matchReturn.Text, pos, options);
+
+                if (pos == -1) { break; }
+
+                pos--;
+            }
 
             return result.ToString();
         }
@@ -1158,10 +1176,13 @@ namespace SmartSharp.TextBuilder
                 ref char c = ref text[i];
                 // ASCII A-Z
 
-                if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
-                { ignore = true; i += openTag.Length; }
-                else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
-                { ignore = false; i += closeTag.Length; }
+                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
+                {
+                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
+                    {  ignore = true; i += openTag.Length - 1; continue;  }
+                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
+                    {  ignore = false; i += closeTag.Length - 1; continue; }
+                }
 
                 if (ignore) { continue; }
 
@@ -1200,12 +1221,15 @@ namespace SmartSharp.TextBuilder
                 ref char c = ref text[i];
                 // ASCII A-Z
 
-                if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
-                { accept = true; i += openTag.Length; }
-                else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
-                { accept = false; i += closeTag.Length; }
+                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
+                {
+                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
+                    { accept = true; i += openTag.Length - 1; continue; }
+                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
+                    { accept = false; i += closeTag.Length - 1; continue; }
+                }
 
-                if (!accept) { continue; }
+                if ( !accept ) { continue; }
 
                 if (c >= 'A' && c <= 'Z')
                 {
@@ -1369,16 +1393,34 @@ namespace SmartSharp.TextBuilder
         /// <param name="startIndex">Start position of source text</param>
         /// <param name="options">TextBuilder.Parmas options</param>
         /// <returns>Source text with matched sequence in upper case.</returns>
-        public static string ToUpperMatch(string text, string sequenceToMatch, int startIndex, params byte[] options)
+        public static string ToUpperMatch(string text, string sequenceToMatch, params byte[] options)
         {
             ReadOnlySpan<char> _text = text;
             ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+            ReadOnlySpan<char> result = text;
 
-            StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
+            StringAndPosition matchReturn = match(result, sequenceToMatch, 0, 0, 0, options);
 
-            matchReturn.Text = matchReturn.Text.ToLower();
+            if (matchReturn.Position == -1)
+            {
+                return text; // No match found, return original text
+            }
 
-            ReadOnlySpan<char> result = insert(text, matchReturn.Text, matchReturn.Position, matchReturn.Text.Length, true);
+            int pos = matchReturn.Position;
+            int len = matchReturn.Text.Length;
+
+            for (; pos < result.Length; pos++)
+            {
+                result = insert(result, matchReturn.Text.ToUpper(), pos, len, true);
+
+                pos += len -1;
+
+                (pos, len) = indexOf(result, matchReturn.Text, pos, options);
+                
+                if (pos == -1) { break; }
+
+                pos--;
+            }
 
             return result.ToString();
         }
@@ -1437,10 +1479,13 @@ namespace SmartSharp.TextBuilder
                 ref char c = ref text[i];
                 // ASCII A-Z
 
-                if (openTag[0] == c)
-                { ignore = true; }
-                else if (closeTag[0] == c)
-                { ignore = false; }
+                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
+                {
+                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
+                    { ignore = true; i += openTag.Length - 1; continue; }
+                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
+                    { ignore = false; i += closeTag.Length - 1; continue; }
+                }
 
                 if (ignore) { continue; }
 
@@ -1479,10 +1524,13 @@ namespace SmartSharp.TextBuilder
                 ref char c = ref text[i];
                 // ASCII a-z
 
-                if (openTag[0] == c)
-                { accept = true; }
-                else if (closeTag[0] == c)
-                { accept = false; }
+                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
+                {
+                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
+                    { accept = true; i += openTag.Length - 1; continue; }
+                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
+                    { accept = false; i += closeTag.Length - 1; continue; }
+                }
 
                 if (!accept) { continue; }
 
@@ -1744,6 +1792,12 @@ namespace SmartSharp.TextBuilder
             ReadOnlySpan<char> _toReplace = toRepalce;
 
             StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
+
+            if( matchReturn.Position ==-1 )
+            {
+                return text; // No match found, return original text
+            }
+
             ReadOnlySpan<char> result = insert(text, toRepalce, matchReturn.Position, matchReturn.Text.Length, true);
 
             return result.ToString();
@@ -1779,20 +1833,27 @@ namespace SmartSharp.TextBuilder
             ReadOnlySpan<char> _text = text;
             ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
             ReadOnlySpan<char> _toReplace = toRepalce;
-            ReadOnlySpan<char> result = default;
+            ReadOnlySpan<char> result = text;
             int position = 0;
             int len = 0;
+            int occurPos = -1;
 
             while (position != -1)
             {
-                StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
-                position = matchReturn.Position;
+                StringAndPosition matchReturn = match( result, sequenceToMatch, startIndex, 0, 0, options);
 
+                if (matchReturn.Position == -1)
+                {
+                    return text; // No match found, return original text
+                }
+
+                position = matchReturn.Position;
+                
                 if (matchReturn.Position != -1)
-                { startIndex = matchReturn.Position; len = matchReturn.Text.Length; }
+                { len = matchReturn.Text.Length; startIndex = matchReturn.Position + len; occurPos = position; }
             }
 
-            result = insert(text, toRepalce, startIndex, len, true);
+            result = insert(text, toRepalce, occurPos, len, true);
 
             return result.ToString();
         }
@@ -1835,14 +1896,17 @@ namespace SmartSharp.TextBuilder
             ReadOnlySpan<char> _text = text;
             ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
             ReadOnlySpan<char> _toReplace = toRepalce;
-            ReadOnlySpan<char> result = default;
+            ReadOnlySpan<char> result = text;
             int position = 0;
 
             while (position != -1)
             {
-                StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, ParamsGreedyOccurence);
+                StringAndPosition matchReturn = match(result, sequenceToMatch, startIndex,0,0);
                 position = matchReturn.Position;
-                result = insert(text, toRepalce, matchReturn.Position, matchReturn.Text.Length, true);
+
+                if(position ==-1) { break; }
+                
+                result = insert(result, toRepalce, matchReturn.Position, matchReturn.Text.Length, true);
             }
 
             return result.ToString();
@@ -1884,6 +1948,10 @@ namespace SmartSharp.TextBuilder
         {
             StringAndPosition matchReturn = Match(text, beforeIt, options);
             int position = matchReturn.Position;
+
+            if(position == -1)
+            { return text; }
+
             ReadOnlySpan<char> result = insert(text, toInsert, position, toInsert.Length, false).ToString();
 
             return result.ToString();
@@ -1903,6 +1971,10 @@ namespace SmartSharp.TextBuilder
         public static string InsertAfter(string text, string toInsert, string afterIt, params byte[] options)
         {
             StringAndPosition matchReturn = Match(text, afterIt, options);
+
+            if (matchReturn.Position == -1)
+            { return text; }
+
             int position = matchReturn.Position + matchReturn.Text.Length;
             ReadOnlySpan<char> result = insert(text, toInsert, position, toInsert.Length, false);
 
@@ -1975,9 +2047,16 @@ namespace SmartSharp.TextBuilder
         {
             ReadOnlySpan<char> _text = text;
             ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+            ReadOnlySpan<char> result = text;
 
-            StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
-            ReadOnlySpan<char> result = insert(text, ReadOnlySpan<char>.Empty, matchReturn.Position, matchReturn.Text.Length, true);
+            StringAndPosition matchReturn = match(result, sequenceToMatch, startIndex,0, 0, options);
+
+            if(matchReturn.Position == -1)
+            {
+                return text; // No match found, return original text
+            }
+
+            result = insert(text, ReadOnlySpan<char>.Empty, matchReturn.Position, matchReturn.Text.Length, true);
 
             return result.ToString();
         }
@@ -2009,20 +2088,25 @@ namespace SmartSharp.TextBuilder
         {
             ReadOnlySpan<char> _text = text;
             ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
-            ReadOnlySpan<char> result = default;
+            ReadOnlySpan<char> result = text;
             int position = 0;
+            int occurPos = -1;
             int len = 0;
 
             while (position != -1)
             {
-                StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, options);
-                position = matchReturn.Position;
+                StringAndPosition matchReturn = match(result, sequenceToMatch, startIndex, 0, 0, options);
 
-                if (matchReturn.Position != -1)
-                { startIndex = matchReturn.Position; len = matchReturn.Text.Length; }
+                if (matchReturn.Position == -1 && occurPos ==-1) { return text; }
+                                
+                if (matchReturn.Position == -1) { break; }
+
+                occurPos = matchReturn.Position;
+                len = matchReturn.Text.Length;
+                startIndex = occurPos + 1;
             }
 
-            result = insert(text, ReadOnlySpan<char>.Empty, startIndex, len, true);
+            result = insert(text, ReadOnlySpan<char>.Empty, occurPos, len, true);
 
             return result.ToString();
         }
@@ -2054,14 +2138,16 @@ namespace SmartSharp.TextBuilder
         {
             ReadOnlySpan<char> _text = text;
             ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
-            ReadOnlySpan<char> result = default;
-            int position = 0;
+            ReadOnlySpan<char> result = text;
 
-            while (position != -1)
+            for(; startIndex< result.Length; startIndex++ )
             {
-                StringAndPosition matchReturn = Match(text, sequenceToMatch, startIndex, ParamsGreedyOccurence);
-                position = matchReturn.Position;
-                result = insert(text, ReadOnlySpan<char>.Empty, matchReturn.Position, matchReturn.Text.Length, true);
+                StringAndPosition matchReturn = match(result, sequenceToMatch, startIndex,0,0, options);
+
+                if (matchReturn.Position == -1) { break; }
+
+                result = insert(result, ReadOnlySpan<char>.Empty, matchReturn.Position, matchReturn.Text.Length, true);
+                startIndex = matchReturn.Position + 1; // Move start index to next position after the removed text
             }
 
             return result.ToString();
