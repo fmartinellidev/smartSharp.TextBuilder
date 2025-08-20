@@ -795,11 +795,11 @@ namespace SmartSharp.TextBuilder
             #region + Literal pattern
             if (!dynamicChar && !ignoreCase && !ignoreInQuotes && !ignoreInDoubleQuotes)
             {
-                if (getDynamicCharPosition(pattern) > 0)
+                if (getDynamicCharPosition(pattern) == -1)
                 {
-                    occurPos = text[occurPos..].IndexOf(pattern);
+                    occurPos = text[startIndex..].IndexOf(pattern);
                     if (occurPos == -1) { return (-1, 0); }
-                    else { return (occurPos, occurLen); }
+                    else { return (occurPos + startIndex, occurLen); }
                 }
             }
             #endregion
@@ -886,7 +886,7 @@ namespace SmartSharp.TextBuilder
 
                 if (ignoreCase)
                 {
-                    if (toLower(c) == toLower(p))
+                    if (toCaseChar(c,0) == toCaseChar(p,0))
                     {
                         if (occurPos == -1) { occurPos = pos; }
                         occurLen++; patPos++; continue;
@@ -984,7 +984,207 @@ namespace SmartSharp.TextBuilder
         #endregion
 
         #endregion
-                
+
+        #region ► Convert case
+
+        #region ► Controller
+
+        /// <summary>
+        /// To convert case of the specified sequence/pattern to match in the text.
+        /// </summary>
+        /// <param name="text">Source text</param>
+        /// <param name="sequenceToMatch">Sequence chars to match and upper case in source text</param>
+        /// <param name="startIndex">Start position of source text</param>
+        /// <param name="options">TextBuilder.Parmas options</param>
+        /// <returns>Source text with matched sequence in new case.</returns>
+        public static string ToCaseMatch(string text, string sequenceToMatch, byte toCaseCod, params byte[] options)
+        {
+            ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
+
+            StringAndPosition matchReturn = match(text, sequenceToMatch, 0, 0, 0, options);
+
+            if (matchReturn.Position == -1)
+            {
+                return text; // No match found, return original text
+            }
+
+            int pos = matchReturn.Position;
+            int len = matchReturn.Text.Length;
+
+            if (text.Length >= 256)
+            {
+                Span<char> result = stackalloc char[text.Length];
+                text.CopyTo(result);
+                result = toCase(result, matchReturn.Text, toCaseCod);
+                return result.ToString();
+            }
+            else
+            {
+                Span<char> result = text.ToArray();
+                result = toCase(result, matchReturn.Text, toCaseCod);
+                return result.ToString();
+            }
+
+        }
+
+        #endregion
+
+        #region ► Model
+
+        private static Span<char> toCase(Span<char> text, ReadOnlySpan<char>sequenceChars, byte toCaseCod, params byte[] options )// 0 tolower, 1 upper
+        {
+            int pos = 0;
+            int len = sequenceChars.Length;
+            bool casingChars = false;
+
+            for (; pos < text.Length; pos++)
+            {
+                if (!casingChars)
+                {
+                    ( pos, len ) = indexOf( text, sequenceChars, pos, options);
+                    if (pos == -1) { return text; }
+                    pos--;  casingChars = true;
+                }
+                else
+                {
+                    text[pos] = toCaseChar(text[pos], toCaseCod);
+                    len--;
+                    if (len == 0) { len = sequenceChars.Length; casingChars = false; }
+                }
+            }
+
+            return text;
+        }
+
+        /// <summary>
+        /// Model to convert case of the specified character in the text.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="character"></param>
+        /// <returns></returns>
+        private static ReadOnlySpan<char> toCaseAllChars(Span<char> text, Span<char> character, byte toCaseCod)
+        { 
+            for (int i = 0; i < text.Length; i++)
+            {
+                ref char c = ref text[i];
+                // ASCII A-Z
+                c = toCaseChar(c, toCaseCod);
+            }
+
+            return text;
+        }
+
+        private static ReadOnlySpan<char> toCaseTextIgnore(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag, byte toCaseCod)
+        {
+            bool ignore = false;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                ref char c = ref text[i];
+                // ASCII A-Z
+
+                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
+                {
+                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
+                    { ignore = true; i += openTag.Length - 1; continue; }
+                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
+                    { ignore = false; i += closeTag.Length - 1; continue; }
+                }
+
+                if (ignore) { continue; }
+
+                text[i] = toCaseChar(text[i], toCaseCod);
+            }
+
+            return text;
+        }
+
+        private static ReadOnlySpan<char> toCaseTextBetween(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag, byte toCaseCod)
+        {
+            bool accept = false;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                ref char c = ref text[i];
+
+                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
+                {
+                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
+                    {
+                        accept = true;
+                        //i += openTag.Length - 1; 
+                        //continue; 
+                    }
+                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
+                    {
+                        accept = false;
+                        text = toCase(text, closeTag, toCaseCod);
+                        i += closeTag.Length - 1;
+                        //continue;
+
+                    }
+                }
+
+                if (!accept) { continue; }
+
+                text[i] = toCaseChar(text[i], toCaseCod); // Convert to upper case
+            }
+
+            return text;
+        }
+
+        private static char toCaseChar(char character, byte toCaseCod)
+        {
+            if (character >= 'a' && character <= 'z' && toCaseCod == 0) { return character; }
+            if (character >= 'A' && character <= 'Z' && toCaseCod == 1) { return character; }
+
+            // Tabelas estáticas (não alocam em cada chamada)
+            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
+            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
+
+            // ASCII A-Z
+            if (character >= 'A' && character <= 'Z' && toCaseCod ==0)
+            {
+                character = (char)(character + 32);
+            }
+            else if (character >= 'a' && character <= 'z' && toCaseCod == 1)
+            {
+                character = (char)(character - 32);
+            }
+            else if(toCaseCod == 0)
+            {
+                // Busca em tabela de acentuados
+                int index = UpperChars().IndexOf(character);
+                if (index != -1)
+                {
+                    character = LowerChars()[index];
+                }
+                else
+                {
+                    character = char.ToLowerInvariant(character);
+                }
+            }
+            else if (toCaseCod == 1)
+            {
+                // Busca em tabela de acentuados
+                int index = LowerChars().IndexOf(character);
+                if (index != -1)
+                {
+                    character = UpperChars()[index];
+                }
+                else
+                {
+                    character = char.ToUpperInvariant(character);
+                }
+            }
+
+            return character;
+        }
+
+        #endregion
+
+        #endregion
+
         #region ► ToLower
 
         #region ► ToLower ignore snippet
@@ -1002,7 +1202,7 @@ namespace SmartSharp.TextBuilder
                 Span<char> textStack = stackalloc char[text.Length];
                 text.CopyTo(textStack);
 
-                ReadOnlySpan<char> result = toLowerTextIgnore(textStack, onlyIgnore.open, onlyIgnore.close);
+                ReadOnlySpan<char> result = toCaseTextIgnore(textStack, onlyIgnore.open, onlyIgnore.close, 0);
 
                 return result.ToString();
             }
@@ -1010,7 +1210,7 @@ namespace SmartSharp.TextBuilder
             {
                 char[] textSpan = text.ToArray();
 
-                ReadOnlySpan<char> result = toLowerTextIgnore(textSpan, onlyIgnore.open, onlyIgnore.close);
+                ReadOnlySpan<char> result = toCaseTextIgnore(textSpan, onlyIgnore.open, onlyIgnore.close, 0);
                 if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
 
                 return result.ToString();
@@ -1033,7 +1233,7 @@ namespace SmartSharp.TextBuilder
                 Span<char> textStack = stackalloc char[text.Length];
                 text.CopyTo(textStack);
 
-                ReadOnlySpan<char> result = toLowerTextBetween(textStack, onlyBetween.open, onlyBetween.close);
+                ReadOnlySpan<char> result = toCaseTextBetween(textStack, onlyBetween.open, onlyBetween.close, 0);
 
                 return result.ToString();
             }
@@ -1041,7 +1241,7 @@ namespace SmartSharp.TextBuilder
             {
                 char[] textSpan = text.ToArray();
 
-                ReadOnlySpan<char> result = toLowerTextBetween(textSpan, onlyBetween.open, onlyBetween.close);
+                ReadOnlySpan<char> result = toCaseTextBetween(textSpan, onlyBetween.open, onlyBetween.close, 0);
                 if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
 
                 return result.ToString();
@@ -1065,7 +1265,7 @@ namespace SmartSharp.TextBuilder
                 Span<char> textStack = stackalloc char[text.Length];
                 text.CopyTo(textStack);
 
-                ReadOnlySpan<char> result = toLowerChar(textStack, _char);
+                ReadOnlySpan<char> result = toCase(textStack, _char, 0);
 
                 return result.ToString();
             }
@@ -1073,7 +1273,7 @@ namespace SmartSharp.TextBuilder
             {
                 char[] textSpan = text.ToArray();
 
-                ReadOnlySpan<char> result = toLowerChar(textSpan, _char);
+                ReadOnlySpan<char> result = toCase(textSpan, _char, 0);
                 if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
 
                 return result.ToString();
@@ -1092,200 +1292,10 @@ namespace SmartSharp.TextBuilder
         /// <returns></returns>
         public static string ToLowerMatch(string text, string sequenceToMatch, params byte[] options)
         {
-            ReadOnlySpan<char> _text = text;
-            ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
-            ReadOnlySpan<char> result = text;
-
-            StringAndPosition matchReturn = match(result, sequenceToMatch, 0, 0, 0, options);
-
-            if (matchReturn.Position == -1)
-            {
-                return text; // No match found, return original text
-            }
-
-            int pos = matchReturn.Position;
-            int len = matchReturn.Text.Length;
-
-            for (; pos < result.Length; pos++)
-            {
-                result = insert(result, matchReturn.Text.ToLower(), pos, len, true);
-
-                pos += len - 1;
-
-                (pos, len) = indexOf(result, matchReturn.Text, pos, options);
-
-                if (pos == -1) { break; }
-
-                pos--;
-            }
-
-            return result.ToString();
+            return ToCaseMatch(text, sequenceToMatch, 0, options);
         }
         #endregion
-
-        #region ▼ Models
-        /// <summary>
-        /// Model to lower case of the specified character in the text.
-        /// </summary>
-        /// <param name="text"></param>
-        /// <param name="character"></param>
-        /// <returns></returns>
-        private static ReadOnlySpan<char> toLowerChar(Span<char> text, Span<char> character)
-        {
-            // Tabelas estáticas (não alocam em cada chamada)
-            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
-            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
-                        
-            for (int i = 0; i < text.Length; i++)
-            {
-                ref char c = ref text[i];
-                // ASCII A-Z
-
-                if (c >= 'A' && c <= 'Z' && c == character[0])
-                {
-                    c = (char)(c + 32);
-                }
-                else
-                {
-                    // Busca em tabela de acentuados
-                    int index = UpperChars().IndexOf(c);
-                    if (index != -1 && c == character[0])
-                    {
-                        c = LowerChars()[index];
-                    }
-                    // Se quiser, adicione fallback:
-                    // else
-                    // {
-                    //     c = char.ToLowerInvariant(c);
-                    // }
-                }
-            }
-
-            return text;
-        }
-
-        private static ReadOnlySpan<char> toLowerTextIgnore(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag)
-        {
-            // Tabelas estáticas (não alocam em cada chamada)
-            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
-            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
-            bool ignore = false;
-
-            for (int i = 0; i < text.Length; i++)
-            {
-                ref char c = ref text[i];
-                // ASCII A-Z
-
-                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
-                {
-                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
-                    {  ignore = true; i += openTag.Length - 1; continue;  }
-                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
-                    {  ignore = false; i += closeTag.Length - 1; continue; }
-                }
-
-                if (ignore) { continue; }
-
-                if (c >= 'A' && c <= 'Z')
-                {
-                    c = (char)(c + 32);
-                }
-                else
-                {
-                    // Busca em tabela de acentuados
-                    int index = UpperChars().IndexOf(c);
-                    if (index != -1)
-                    {
-                        c = LowerChars()[index];
-                    }
-                    // Se quiser, adicione fallback:
-                    // else
-                    // {
-                    //     c = char.ToLowerInvariant(c);
-                    // }
-                }
-            }
-
-            return text;
-        }
-
-        private static ReadOnlySpan<char> toLowerTextBetween(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag)
-        {
-            // Tabelas estáticas (não alocam em cada chamada)
-            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
-            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
-            bool accept = false;
-
-            for (int i = 0; i < text.Length; i++)
-            {
-                ref char c = ref text[i];
-                // ASCII A-Z
-
-                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
-                {
-                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
-                    { accept = true; i += openTag.Length - 1; continue; }
-                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
-                    { accept = false; i += closeTag.Length - 1; continue; }
-                }
-
-                if ( !accept ) { continue; }
-
-                if (c >= 'A' && c <= 'Z')
-                {
-                    c = (char)(c + 32);
-                }
-                else
-                {
-                    // Busca em tabela de acentuados
-                    int index = UpperChars().IndexOf(c);
-                    if (index != -1)
-                    {
-                        c = LowerChars()[index];
-                    }
-                    // Se quiser, adicione fallback:
-                    // else
-                    // {
-                    //     c = char.ToLowerInvariant(c);
-                    // }
-                }
-            }
-
-            return text;
-        }
-
-        private static char toLower(char character)
-        {
-            if (character >= 'a' && character <= 'z') { return character; }
-
-            // Tabelas estáticas (não alocam em cada chamada)
-            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
-            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
-
-            // ASCII A-Z
-            if (character >= 'A' && character <= 'Z')
-            {
-                character = (char)(character + 32);
-            }
-            else
-            {
-                // Busca em tabela de acentuados
-                int index = UpperChars().IndexOf(character);
-                if (index != -1)
-                {
-                    character = LowerChars()[index];
-                }
-                else
-                {
-                    character = char.ToLowerInvariant(character);
-                }
-            }
-
-            return character;
-        }
-
-        #endregion
-
+                
         #endregion
 
         #region ▼ ToUpper
@@ -1305,7 +1315,7 @@ namespace SmartSharp.TextBuilder
                 Span<char> textStack = stackalloc char[text.Length];
                 text.CopyTo(textStack);
 
-                ReadOnlySpan<char> result = toUpperTextIgnore(textStack, ignoreBetween.open, ignoreBetween.close);
+                ReadOnlySpan<char> result = toCaseTextIgnore(textStack, ignoreBetween.open, ignoreBetween.close, 1);
 
                 return result.ToString();
             }
@@ -1313,7 +1323,7 @@ namespace SmartSharp.TextBuilder
             {
                 char[] textSpan = text.ToArray();
 
-                ReadOnlySpan<char> result = toUpperTextIgnore(textSpan, ignoreBetween.open, ignoreBetween.close);
+                ReadOnlySpan<char> result = toCaseTextIgnore(textSpan, ignoreBetween.open, ignoreBetween.close, 1);
                 if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
 
                 return result.ToString();
@@ -1336,7 +1346,7 @@ namespace SmartSharp.TextBuilder
                 Span<char> textStack = stackalloc char[text.Length];
                 text.CopyTo(textStack);
 
-                ReadOnlySpan<char> result = toUpperTextBetween(textStack, onlyBetween.open, onlyBetween.close);
+                ReadOnlySpan<char> result = toCaseTextBetween(textStack, onlyBetween.open, onlyBetween.close, 1);
 
                 return result.ToString();
             }
@@ -1344,7 +1354,7 @@ namespace SmartSharp.TextBuilder
             {
                 char[] textSpan = text.ToArray();
 
-                ReadOnlySpan<char> result = toUpperTextBetween(textSpan, onlyBetween.open, onlyBetween.close);
+                ReadOnlySpan<char> result = toCaseTextBetween(textSpan, onlyBetween.open, onlyBetween.close, 1);
                 if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
 
                 return result.ToString();
@@ -1368,7 +1378,7 @@ namespace SmartSharp.TextBuilder
                 Span<char> textStack = stackalloc char[text.Length];
                 text.CopyTo(textStack);
 
-                ReadOnlySpan<char> result = toUpperChar(textStack, _char);
+                ReadOnlySpan<char> result = toCase(textStack, _char, 1);
 
                 return result.ToString();
             }
@@ -1376,7 +1386,7 @@ namespace SmartSharp.TextBuilder
             {
                 char[] textSpan = text.ToArray();
 
-                ReadOnlySpan<char> result = toUpperChar(textSpan, _char);
+                ReadOnlySpan<char> result = toCase(textSpan, _char,1);
                 if (textSpan != null) { Array.Clear(textSpan, 0, textSpan.Length); }
 
                 return result.ToString();
@@ -1395,198 +1405,10 @@ namespace SmartSharp.TextBuilder
         /// <returns>Source text with matched sequence in upper case.</returns>
         public static string ToUpperMatch(string text, string sequenceToMatch, params byte[] options)
         {
-            ReadOnlySpan<char> _text = text;
-            ReadOnlySpan<char> _sequenceToMatch = sequenceToMatch;
-            ReadOnlySpan<char> result = text;
-
-            StringAndPosition matchReturn = match(result, sequenceToMatch, 0, 0, 0, options);
-
-            if (matchReturn.Position == -1)
-            {
-                return text; // No match found, return original text
-            }
-
-            int pos = matchReturn.Position;
-            int len = matchReturn.Text.Length;
-
-            for (; pos < result.Length; pos++)
-            {
-                result = insert(result, matchReturn.Text.ToUpper(), pos, len, true);
-
-                pos += len -1;
-
-                (pos, len) = indexOf(result, matchReturn.Text, pos, options);
+            return ToCaseMatch(text, sequenceToMatch,1, options);
+        }
+        #endregion
                 
-                if (pos == -1) { break; }
-
-                pos--;
-            }
-
-            return result.ToString();
-        }
-        #endregion
-
-        #region ▼ Models
-        /// <summary>
-        /// Model to upper case of the specified character in the text.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="character">Character to upper case.</param>
-        /// <returns></returns>
-        private static ReadOnlySpan<char> toUpperChar(Span<char> text, Span<char> character)
-        {
-            // Tabelas estáticas (não alocam em cada chamada)
-            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
-            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
-
-            for (int i = 0; i < text.Length; i++)
-            {
-                ref char c = ref text[i];
-                // ASCII A-Z
-
-                if (c >= 'a' && c <= 'z' && c == character[0])
-                {
-                    c = (char)(c - 32);
-                }
-                else
-                {
-                    // Busca em tabela de acentuados
-                    int index = LowerChars().IndexOf(c);
-                    if (index != -1 && c == character[0])
-                    {
-                        c = UpperChars()[index];
-                    }
-                    // Se quiser, adicione fallback:
-                    // else
-                    // {
-                    //     c = char.ToLowerInvariant(c);
-                    // }
-                }
-            }
-
-            return text;
-        }
-
-        private static ReadOnlySpan<char> toUpperTextIgnore(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag)
-        {
-            // Tabelas estáticas (não alocam em cada chamada)
-            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
-            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
-            bool ignore = false;
-
-            for (int i = 0; i < text.Length; i++)
-            {
-                ref char c = ref text[i];
-                // ASCII A-Z
-
-                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
-                {
-                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
-                    { ignore = true; i += openTag.Length - 1; continue; }
-                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
-                    { ignore = false; i += closeTag.Length - 1; continue; }
-                }
-
-                if (ignore) { continue; }
-
-                if (c >= 'a' && c <= 'z')
-                {
-                    c = (char)(c - 32);
-                }
-                else
-                {
-                    // Busca em tabela de acentuados
-                    int index = LowerChars().IndexOf(c);
-                    if (index != -1)
-                    {
-                        c = UpperChars()[index];
-                    }
-                    // Se quiser, adicione fallback:
-                    // else
-                    // {
-                    //     c = char.ToLowerInvariant(c);
-                    // }
-                }
-            }
-
-            return text;
-        }
-
-        private static ReadOnlySpan<char> toUpperTextBetween(Span<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag)
-        {
-            // Tabelas estáticas (não alocam em cada chamada)
-            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
-            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
-            bool accept = false;
-
-            for (int i = 0; i < text.Length; i++)
-            {
-                ref char c = ref text[i];
-                // ASCII a-z
-
-                if (i + openTag.Length < text.Length && i + closeTag.Length < text.Length)
-                {
-                    if (text.Slice(i, openTag.Length).SequenceEqual(openTag))
-                    { accept = true; i += openTag.Length - 1; continue; }
-                    else if (text.Slice(i, closeTag.Length).SequenceEqual(closeTag))
-                    { accept = false; i += closeTag.Length - 1; continue; }
-                }
-
-                if (!accept) { continue; }
-
-                if (c >= 'a' && c <= 'z')
-                {
-                    c = (char)(c - 32);
-                }
-                else
-                {
-                    // Busca em tabela de acentuados
-                    int index = LowerChars().IndexOf(c);
-                    if (index != -1)
-                    {
-                        c = UpperChars()[index];
-                    }
-                    // Se quiser, adicione fallback:
-                    // else
-                    // {
-                    //     c = char.ToLowerInvariant(c);
-                    // }
-                }
-            }
-
-            return text;
-        }
-
-        private static char toUpper(char charactere)
-        {
-            // Tabelas estáticas (não alocam em cada chamada)
-            static ReadOnlySpan<char> UpperChars() => "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß";
-            static ReadOnlySpan<char> LowerChars() => "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþß";
-
-            // ASCII A-Z
-            if (charactere >= 'a' && charactere <= 'z')
-            {
-                charactere = (char)(charactere - 32);
-            }
-            else
-            {
-                // Busca em tabela de acentuados
-                int index = LowerChars().IndexOf(charactere);
-                if (index != -1)
-                {
-                    charactere = UpperChars()[index];
-                }
-                else
-                {
-                    charactere = char.ToUpperInvariant(charactere);
-                }
-            }
-
-            return charactere;
-        }
-
-        #endregion
-
         #endregion
 
         #region ▼ Fill
@@ -1844,7 +1666,7 @@ namespace SmartSharp.TextBuilder
 
                 if (matchReturn.Position == -1)
                 {
-                    return text; // No match found, return original text
+                    break; // No match found, return original text
                 }
 
                 position = matchReturn.Position;
@@ -1916,6 +1738,41 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
+        #region ► Translate
+
+        /// <summary>
+        /// Replaces all occurrences of the specified sequence/pattern to match in the text with the specified toReplace string.
+        /// </summary>
+        /// <param name="text">Source text</param>
+        /// <param name="sequenceToMatch">Sequence characters to match in source text</param>
+        /// <param name="toRepalce">Replace to this sequence characters</param>
+        /// <param name="options">TextBuilder.Params options</param>
+        /// <returns>Source text with match replaced</returns>
+        public static string Translate(string text, string sequencesToMatch, string sequencesToRepalce, params byte[] options)
+        {
+            return Translate(text, sequencesToMatch, sequencesToRepalce, 0, options);
+        }
+
+        public static string Translate(string text, string sequencesToMatch, string sequencesToReplace, int startIndex, params byte[] options)
+        {
+            string[] oldSequences = Split(sequencesToMatch, ',', startIndex,('\'', '\''), true);
+            string[] newSequences = Split(sequencesToReplace, ',', startIndex, ('\'', '\''), true);
+
+            if (oldSequences.Count() != newSequences.Count())
+            {
+                throw new InvalidOperationException("The sequences to match and replace must have the same length.");
+            }
+
+            for (int i = 0; i < oldSequences.Count(); i++)
+            {
+                text = replaceCore(text, oldSequences[i], newSequences[i], startIndex, options);
+            }
+
+            return text;
+        }
+
+        #endregion
+
         #region ▼ Insert
 
         #region ► Insert
@@ -1935,6 +1792,34 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
+        #region ► InsertBeforeFirst
+        /// <summary>
+        /// Inserts the specified string before the first occurrence of the specified sequence/pattern to match in the text.
+        /// </summary>
+        /// <param name="text">Source text</param>
+        /// <param name="toInsert">Sequence characters to insert in source text</param>
+        /// <param name="beforeIt">Before this sequence character</param>
+        /// <param name="options">TextBuilder.Params options</param>
+        /// <returns>Source text with sequence character inserted</returns>
+        public static string InsertBeforeFirst(string text, string toInsert, string beforeIt, params byte[] options)
+        {
+            int position = 0;
+            ReadOnlySpan<char> textSpan = text;
+
+            StringAndPosition matchReturn = match(textSpan, beforeIt, 0, 0, 0, options);
+
+            position = matchReturn.Position - 1;
+
+            if (position == -1)
+            { return textSpan.ToString(); }
+
+            textSpan = insert(textSpan, toInsert, position, toInsert.Length, false).ToString();
+
+            return textSpan.ToString();
+        }
+
+        #endregion
+
         #region ► InsertBefore
         /// <summary>
         /// Inserts the specified string before the first occurrence of the specified sequence/pattern to match in the text.
@@ -1946,13 +1831,44 @@ namespace SmartSharp.TextBuilder
         /// <returns>Source text with sequence character inserted</returns>
         public static string InsertBefore(string text, string toInsert, string beforeIt, params byte[] options)
         {
-            StringAndPosition matchReturn = Match(text, beforeIt, options);
-            int position = matchReturn.Position;
+            ReadOnlySpan<char> textStack = text;
+            int pos = 0;
 
-            if(position == -1)
+            for (; pos < textStack.Length; pos++)
+            {
+                StringAndPosition matchReturn = match(textStack, beforeIt, pos, 0, 0, options);
+                pos = matchReturn.Position;
+
+                if (pos == -1)
+                { return textStack.ToString(); }
+
+                textStack = insert(textStack, toInsert, pos, toInsert.Length, false).ToString();
+                pos += toInsert.Length + beforeIt.Length;
+            }
+
+            return textStack.ToString();
+        }
+
+        #endregion
+
+        #region ► InsertAfterFirst
+        /// <summary>
+        /// Inserts the specified string after the first occurrence of the specified sequence/pattern to match in the text.
+        /// </summary>
+        /// <param name="text">Source text</param>
+        /// <param name="toInsert">Sequence characters to insert in source text</param>
+        /// <param name="afterIt">After this sequence character</param>
+        /// <param name="options">TextBuilder.Params options</param>
+        /// <returns>Source text with sequence character inserted</returns>
+        public static string InsertAfterFirst(string text, string toInsert, string afterIt, params byte[] options)
+        {
+            StringAndPosition matchReturn = Match(text, afterIt, options);
+
+            if (matchReturn.Position == -1)
             { return text; }
 
-            ReadOnlySpan<char> result = insert(text, toInsert, position, toInsert.Length, false).ToString();
+            int position = matchReturn.Position + matchReturn.Text.Length;
+            ReadOnlySpan<char> result = insert(text, toInsert, position, toInsert.Length, false);
 
             return result.ToString();
         }
@@ -1970,15 +1886,22 @@ namespace SmartSharp.TextBuilder
         /// <returns>Source text with sequence character inserted</returns>
         public static string InsertAfter(string text, string toInsert, string afterIt, params byte[] options)
         {
-            StringAndPosition matchReturn = Match(text, afterIt, options);
+            ReadOnlySpan<char> textStack = text;
+            int pos = 0;
 
-            if (matchReturn.Position == -1)
-            { return text; }
+            for (; pos < textStack.Length; pos++)
+            {
+                StringAndPosition matchReturn = match(textStack, afterIt, pos, 0, 0, options);
+                pos = matchReturn.Position + matchReturn.Text.Length;
 
-            int position = matchReturn.Position + matchReturn.Text.Length;
-            ReadOnlySpan<char> result = insert(text, toInsert, position, toInsert.Length, false);
+                if (pos == -1)
+                { return textStack.ToString(); }
 
-            return result.ToString();
+                textStack = insert(textStack, toInsert, pos, toInsert.Length, false).ToString();
+                pos += toInsert.Length;
+            }
+
+            return textStack.ToString();
         }
 
         #endregion
@@ -2158,6 +2081,7 @@ namespace SmartSharp.TextBuilder
         #endregion
 
         #region ▼ Split
+
         /// <summary>
         /// Splits the text into an array of substrings at the positions defined by the specified separator character,
         /// </summary>
@@ -2165,7 +2089,19 @@ namespace SmartSharp.TextBuilder
         /// <param name="separator">Separator character</param>
         /// <param name="ignoreChar">Tupla with open tag and close tag to ignore snippet of text</param>
         /// <returns>Array with splited parts of text</returns>
-        public static string[] Split(string text, char separator, (char open, char close)ignoreChar)
+        public static string[] Split(string text, char separator)
+        {
+            return split(text, separator, 0, ('\0', '\0'));
+        }
+
+        /// <summary>
+        /// Splits the text into an array of substrings at the positions defined by the specified separator character,
+        /// </summary>
+        /// <param name="text">Source text</param>
+        /// <param name="separator">Separator character</param>
+        /// <param name="ignoreChar">Tupla with open tag and close tag to ignore snippet of text</param>
+        /// <returns>Array with splited parts of text</returns>
+        public static string[] Split(string text, char separator, (char open, char close)ignoreChar, bool removeIgnoreChar = false)
         {
             return split(text, separator,0, ignoreChar);
         }
@@ -2178,9 +2114,9 @@ namespace SmartSharp.TextBuilder
         /// <param name="startIndex">Start position in text</param>
         /// <param name="ignoreChar">Tupla with open tag and close tag to ignore snippet of text</param>
         /// <returns>Array with splited parts of text</returns>
-        public static string[] Split(string text, char separator, int startIndex, (char open, char close) ignoreChar)
+        public static string[] Split(string text, char separator, int startIndex, (char open, char close) ignoreChar, bool removeIgnoreChar = false)
         {
-            return split(text, separator, startIndex, ignoreChar);
+            return split(text, separator, startIndex, ignoreChar, removeIgnoreChar);
         }
 
         /// <summary>
@@ -2191,7 +2127,7 @@ namespace SmartSharp.TextBuilder
         /// <param name="startIndex">Start position in text</param>
         /// <param name="ignoreChar">Tupla with open tag and close tag to ignore snippet of text</param>
         /// <returns>Array with splited parts of text</returns>
-        private static string[] split(ReadOnlySpan<char> text, char separator, int startIndex, (char open, char close)ignoreChar)
+        private static string[] split(ReadOnlySpan<char> text, char separator, int startIndex, (char open, char close)ignoreChar, bool removeIgnoreChar = false)
         {
             int pos = 0;
             bool ignoreMode = false;
@@ -2216,7 +2152,19 @@ namespace SmartSharp.TextBuilder
 
                 if (pos > start)
                 {
-                    splited.Add(text.Slice(start, pos - start).ToString());
+                    if( removeIgnoreChar && ignoreChar.open !='\0')
+                    {
+                        int len = pos - start;
+                        if (text[start] == ignoreChar.open && removeIgnoreChar)
+                        { start++; len = len - 2; }
+                        
+                        splited.Add(text.Slice(start, len).ToString().Replace(ignoreChar.open, '\0'));
+                    }
+                    else
+                    {
+                        // Add the substring from start to pos
+                        splited.Add(text.Slice(start, pos - start).ToString());
+                    }
                 }
 
                 if (pos < text.Length) pos++;
