@@ -2439,7 +2439,7 @@ namespace SmartSharp.TextBuilder
         /// <returns>First snippet matched by open and close tags</returns>
         public static string SinippetReplaceFirst(string text, string openAndCloseTags, string toRepalce, params byte[] options)
         {
-            return SnippetReplaceFirst(text, openAndCloseTags, toRepalce, "", 0, options);
+            return SnippetReplaceFirst(text, openAndCloseTags, "", toRepalce, 0, options);
         }
 
         /// <summary>
@@ -2454,7 +2454,7 @@ namespace SmartSharp.TextBuilder
         /// <returns>First snippet matched by open and close tags</returns>
         public static string SinippetReplaceFirst(string text, string openAndCloseTags, string toRepalce, int startIndex, params byte[] options)
         {
-            return SnippetReplaceFirst(text, openAndCloseTags, toRepalce, "", startIndex, options);
+            return SnippetReplaceFirst(text, openAndCloseTags, "", toRepalce, startIndex, options);
         }
 
         /// <summary>
@@ -2471,7 +2471,7 @@ namespace SmartSharp.TextBuilder
         /// <returns>First snippet matched by open and close tags</returns>
         public static string SinippetReplaceFirst(string text, string openAndCloseTags, string snippetID, string toRepalce, params byte[] options)
         {
-            return SnippetReplaceFirst(text, openAndCloseTags, toRepalce, snippetID, 0, options);
+            return SnippetReplaceFirst(text, openAndCloseTags, snippetID, toRepalce,  0, options);
         }
 
         /// <summary>
@@ -2518,6 +2518,38 @@ namespace SmartSharp.TextBuilder
         /// <param name="text">Source text</param>
         /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
         /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="toRepalce">Replace matched snippet to this</param>
+        /// <param name="startIndex">Start position in source text</param>
+        /// <param name="options">TextBuilder.Params options</param>
+        /// <returns>First snippet matched by open and close tags</returns>
+        public static string ReplaceSnippetLast(string text, string openAndCloseTags, string toRepalce, int startIndex, params byte[] options)
+        {
+            return ReplaceSnippetLast(text, openAndCloseTags, "", toRepalce, startIndex, options);
+        }
+
+        /// <summary>
+        /// Replaces the last occurrence of the specified snippet in the text with the specified toReplace string.
+        /// </summary>
+        /// <param name="text">Source text</param>
+        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
+        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
+        /// <para>The id snippet must be after open tag and before close tag.</para>
+        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
+        /// <param name="toRepalce">Replace matched snippet to this</param>
+        /// <param name="options">TextBuilder.Params options</param>
+        /// <returns>First snippet matched by open and close tags</returns>
+        public static string ReplaceSnippetLast(string text, string openAndCloseTags, string snippetID, string toRepalce, params byte[] options)
+        {
+            return ReplaceSnippetLast(text, openAndCloseTags, snippetID, toRepalce, 0, options);
+        }
+
+        /// <summary>
+        /// Replaces the last occurrence of the specified snippet in the text with the specified toReplace string.
+        /// </summary>
+        /// <param name="text">Source text</param>
+        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
+        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
         /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
         /// <para>The id snippet must be after open tag and before close tag.</para>
         /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
@@ -2537,7 +2569,7 @@ namespace SmartSharp.TextBuilder
                 position = matchReturn.Position;
 
                 if (matchReturn.Position != -1)
-                { startIndex = matchReturn.Position; len = matchReturn.Text.Length; }
+                { startIndex = matchReturn.Position + 1; len = matchReturn.Text.Length; }
             }
 
             result = insert(text, toRepalce, startIndex, len, true);
