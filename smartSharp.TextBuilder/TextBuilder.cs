@@ -780,7 +780,7 @@ namespace SmartSharp.TextBuilder
         {
             if (pattern.Length == 0) { return (-1, 0); }
             if (text.Length == 0) { return (-1, 0); }
-            int occurPos = 0;
+            int occurPos = -1;
             int occurLen = pattern.Length;
             int patPos = 0;
             int len = 0;
@@ -791,6 +791,8 @@ namespace SmartSharp.TextBuilder
             bool ignoreInDoubleQuotes = options.Contains(ParamsIgnoreInDoubleQuotes);
             bool completeWord = false;
             bool ignore = false;
+
+            if(startIndex < 0 ){ startIndex = 0; }
 
             #region + Literal pattern
             if (!dynamicChar && !ignoreCase && !ignoreInQuotes && !ignoreInDoubleQuotes)
@@ -1922,7 +1924,7 @@ namespace SmartSharp.TextBuilder
                                                  int len,
                                                  bool replace)
         {
-            int _len = text.Length + toInsert.Length;
+            int _len = ( text.Length + toInsert.Length ) + 2;
 
             Span<char> replacement = new char[_len];
 
@@ -2214,66 +2216,30 @@ namespace SmartSharp.TextBuilder
         #region ▼ Match Snippets
 
         #region ► Constructors
+
         /// <summary>
         /// Match a snippet in the source text with open and close tags.
         /// </summary>
         /// <param name="sourceText">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="snippetTags">Open snippet and close snippet sequence characters.
         /// <param name="options">TextBuilde.Params option</param>
         /// <returns>Matched snippet of characters</returns>
-        public static StringAndPosition Snippet(string sourceText, string openAndCloseTags, params byte[] options)
+        public static StringAndPosition Snippet(string sourceText, (string open, string close) snippetTags, params byte[] options)
         {
-            return Snippet(sourceText, openAndCloseTags, string.Empty, 0, options);
+            return Snippet(sourceText, snippetTags, 0, options);
         }
 
         /// <summary>
         /// Match a snippet in the source text with open and close tags.
         /// </summary>
         /// <param name="sourceText">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="snippetTags">Open snippet and close snippet sequence characters.
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilde.Params option</param>
         /// <returns>Matched snippet of characters</returns>
-        public static StringAndPosition Snippet(string sourceText, string openAndCloseTags, int startIndex, params byte[] options)
+        public static StringAndPosition Snippet(string sourceText, (string open, string close) snippetTags, int startIndex, params byte[] options)
         {
-            return Snippet(sourceText, openAndCloseTags, string.Empty, startIndex, options);
-        }
-
-        /// <summary>
-        /// Match a snippet in the source text with open and close tags.
-        /// </summary>
-        /// <param name="sourceText">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="idOfSnippet">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
-        /// <param name="options">TextBuilde.Params option</param>
-        /// <returns>Matched snippet of characters</returns>
-        public static StringAndPosition Snippet(string sourceText, string openAndCloseTags, string idOfSnippet, params byte[] options)
-        {
-            return Snippet(sourceText, openAndCloseTags, idOfSnippet, 0, options);
-        }
-
-        /// <summary>
-        /// Match a snippet in the source text with open and close tags.
-        /// </summary>
-        /// <param name="sourceText">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="idOfSnippet">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
-        /// <param name="startIndex">Start position in source text</param>
-        /// <param name="options">TextBuilde.Params option</param>
-        /// <returns>Matched snippet of characters</returns>
-        public static StringAndPosition Snippet(string sourceText, string openAndCloseTags, string idOfSnippet, int startIndex, params byte[] options)
-        {
-            var resultSpan = snippet(sourceText, openAndCloseTags, idOfSnippet, startIndex, options);
-
-            return resultSpan;
+            return snippet(sourceText, snippetTags.open, snippetTags.close, startIndex, options);
         }
 
         #endregion
@@ -2283,16 +2249,16 @@ namespace SmartSharp.TextBuilder
         /// Match a snippet in the source text with open and close tags.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="snippetTags">Open and close tag sequence character</param>
-        /// <param name="snippetID">ID of snippet</param>
+        /// <param name="snippetOpen">Open snippet tag sequence character</param>
+        /// <param name="snippetClose">Close snippet tag sequence character</param>
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>Matched snippet of characters</returns>
-        private static StringAndPosition snippet(ReadOnlySpan<char> text, ReadOnlySpan<char> snippetTags, ReadOnlySpan<char> snippetID, int startIndex, params byte[] options)
+        private static StringAndPosition snippet(ReadOnlySpan<char> text, ReadOnlySpan<char> snippetOpen, ReadOnlySpan<char> snippetClose, int startIndex, params byte[] options)
         {
-            if (snippetTags.Length == 0 && text == Span<char>.Empty) { return default; }
+            if ( (snippetOpen.Length == 0 || snippetClose.Length==0) && text == Span<char>.Empty) { return default; }
 
-            (int position, int length) = snippetCore(text, snippetTags.ToArray(), snippetID, startIndex, options);
+            (int position, int length) = snippetCore(text, snippetOpen, snippetClose, startIndex, options);
 
             if (position == -1 || length == 0)
             { return new StringAndPosition(); }
@@ -2307,119 +2273,116 @@ namespace SmartSharp.TextBuilder
         /// Match a snippet in the source text with open and close tags.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="snippet">Snippet open and close tag</param>
+        /// <param name="openTag">Snippet open tag</param>
+        /// <param name="closeTag">Snippet close tag</param>
         /// <param name="snippetID">Snippet ID to identify snippet</param>
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>Matched snippet of characters</returns>
         /// <exception cref="Exception">Invalid snippet pattern, if not found wildcard in snippet tags</exception>
         /// <exception cref="InvalidCastException"></exception>
-        private static (int, int) snippetCore(ReadOnlySpan<char> text, ReadOnlySpan<char> snippet, ReadOnlySpan<char> snippetID, int startIndex, params byte[] options)
+        private static (int, int) snippetCore(ReadOnlySpan<char> text, ReadOnlySpan<char> openTag, ReadOnlySpan<char> closeTag, int startIndex, params byte[] options)
         {
             #region ** Exception : The snippet not contain a '*' character to split open and close tag.
-            int splitPos = snippet.IndexOf('*');
 
-            if (splitPos == -1)
-            { throw new Exception("!Invalid snippet pattern!"); }
-
-            if(options.Contains(ParamsDynamicChars))
-            { throw new Exception("!Snippet no accept dynamic char!"); }
+            if (openTag.Length == 0 || closeTag.Length ==0)
+            { throw new Exception("!Open or/and close snippet empty!"); }
 
             #endregion
-                        
+
             #region ++ Flags e variables
+
+            int openPos = -1;
+            int openLen = 0;
+            int closePos = -1;
+            int closeLen = 0;
+            int openStartIndex = startIndex;
+            int closeStartIndex = startIndex;
+            bool onlyOpenTag = false;
 
             int openTagCount = 0;
             int closeTagCount = 0;
-            int occurPos = -1;
-            int occurLen = 0;
             int returnPos = -1;
-            int snippetIDPos = -1;
-            PatternsToMatch toMatch = new PatternsToMatch(snippet, '*');
-            ReadOnlySpan<char> openTag = toMatch[0];
-            ReadOnlySpan<char> closeTag = toMatch[1];
+            int returnLen = 0;
 
-            if (toMatch.Count != 2)
-            { throw new InvalidCastException("!Snippet pattern mismatch! Just inform open*close tag in pattern."); }
-
-            #endregion
-            
-            #region + If snippetID is not empty, search for snippetID in open tag.
-
-            if (snippetID.Length > 0)
-            {
-                // If found, set snippetIDPos to current position.
-                //snippetIDPos = text.IndexOf(snippetID);
-                ( snippetIDPos, occurLen ) = matchLitteral(text, snippetID, startIndex, options);
-                occurLen = 0;
-
-                if (snippetIDPos == -1)
-                {
-                    // If not found, set snippetIDPos to -1.
-                    return (-1, 0);
-                }
-            }
             #endregion
 
             for (int pos = startIndex; pos < text.Length; pos++)
             {
                 #region + Search for open and close tag in text and return only the first occurrence of first tag. 
 
-                int tagIndex = 0; // 0 = open tag, 1 = close tag
-
                 #region + Search for open or close tag in text
 
-                (int openPos, int openLen) = matchLitteral(text, openTag, startIndex, options);
-                (int closePos, int closeLen) = matchLitteral(text, closeTag, startIndex, options);
+                StringAndPosition returnOpen = match(text, openTag, openStartIndex, 0, 0, options);
+                openPos = returnOpen.Position;
 
+                if ( openPos == -1 && openTagCount ==0 ) { break; }
+
+                openLen = returnOpen.Text.Length;
+                if (openTagCount == 0) { closeStartIndex = openPos + openLen; }
+
+                #region + If open tag contains a wildcard, remove it from the tag.
+
+                if (!onlyOpenTag)
+                {
+                    int wildcardIndex = openTag.IndexOf('*');
+                    if (wildcardIndex != -1)
+                    {
+                        ReadOnlySpan<char> openTagWithoutWildcard = openTag.Slice(0, wildcardIndex);
+                        openTag = openTagWithoutWildcard; onlyOpenTag = true;
+                    }
+                }
+
+                #endregion
+
+                StringAndPosition returnClose = match(text, closeTag, closeStartIndex, 0, 0, options);
+                closePos = returnClose.Position;
+
+                if (closePos == -1 && closeTagCount == 0) { break; }
+
+                closeLen = returnClose.Text.Length;
+                
                 #endregion
 
                 #region ** Exception : If not found open or close tag, return -1 and 0.
 
-                if (closePos == -1) { break; }
+                if (openPos == -1 && closePos == -1)
+                { break; }
 
                 #endregion
-
-                #endregion
-
-                #region ? Snippet ID informed in parameter and after open tag and before close tag
-
-                if (snippetIDPos != -1)
-                {
-                    if ((openPos < snippetIDPos || closePos < snippetIDPos) && openTagCount == 1)
-                    {
-                        occurPos = -1; occurLen = 0; returnPos = -1; openTagCount = 0; closeTagCount = 0;
-                    }
-                }
 
                 #endregion
 
                 if ((uint)openPos < (uint)closePos)
                 {
                     #region + Increment open tag counter
+
                     openTagCount++;
-                    occurPos = openPos; occurLen = openLen; startIndex = openPos + openLen; tagIndex = 0;
+
+                    if (returnPos == -1) { returnPos = openPos; }
+                    openStartIndex = openPos + openLen;
+                                        
                     #endregion
                 }
                 else
                 {
                     #region + Increment close tag counter
+
                     closeTagCount++;
-                    occurPos = closePos; occurLen = closeLen; startIndex = closePos + closeLen; tagIndex = 1;
+                    returnLen = (closePos - returnPos) + closeLen;
+                    closeStartIndex = closePos + closeLen;
+
                     #endregion
                 }
-                                
+
                 #region + Mark the position of first open tag and calculate the length of snippet when all tags are closed.
-                if (returnPos == -1 && tagIndex ==0)
-                { returnPos = occurPos; }
+                if ((openPos == -1 && closePos == -1) || openTagCount == closeTagCount)
+                { break; }
                 #endregion
-                                
-                if (openTagCount != -1 && openTagCount == closeTagCount)
-                { return (returnPos, (occurPos - returnPos) + occurLen); }
             }
 
             // If not found open tag, return -1 and 0.
-            return (-1, 0);
+            return (returnPos, returnLen);
         }
 
         #endregion
@@ -2429,67 +2392,47 @@ namespace SmartSharp.TextBuilder
         #region ► ReplaceFirst
 
         /// <summary>
-        /// Replaces the first occurrence of the specified snippet in the text with the specified toReplace string.
+        /// Replaces the first specified snippet in the text.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="snippetTags">Open snippet and close snippet sequence characters.
         /// <param name="toRepalce">Replace matched snippet to this</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>First snippet matched by open and close tags</returns>
-        public static string SinippetReplaceFirst(string text, string openAndCloseTags, string toRepalce, params byte[] options)
+        public static string SinippetReplaceFirst(string text, (string open, string close) snippetTags, string toRepalce, params byte[] options)
         {
-            return SnippetReplaceFirst(text, openAndCloseTags, "", toRepalce, 0, options);
+            return SnippetReplaceFirst(text, snippetTags, toRepalce, 0, options);
         }
 
         /// <summary>
-        /// Replaces the first occurrence of the specified snippet in the text with the specified toReplace string.
+        /// Replaces the first specified snippet in the text.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="snippetTags">Open snippet and close snippet sequence characters.
         /// <param name="toRepalce">Replace matched snippet to this</param>
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>First snippet matched by open and close tags</returns>
-        public static string SinippetReplaceFirst(string text, string openAndCloseTags, string toRepalce, int startIndex, params byte[] options)
+        public static string SinippetReplaceFirst(string text, (string open, string close) snippetTags, string toRepalce, int startIndex, params byte[] options)
         {
-            return SnippetReplaceFirst(text, openAndCloseTags, "", toRepalce, startIndex, options);
+            return SnippetReplaceFirst(text, snippetTags, toRepalce, startIndex, options);
         }
 
         /// <summary>
-        /// Replaces the first occurrence of the specified snippet in the text with the specified toReplace string.
+        /// Replaces the first specified snippet in the text.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
-        /// <param name="toRepalce">Replace matched snippet to this</param>
-        /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>First snippet matched by open and close tags</returns>
-        public static string SinippetReplaceFirst(string text, string openAndCloseTags, string snippetID, string toRepalce, params byte[] options)
-        {
-            return SnippetReplaceFirst(text, openAndCloseTags, snippetID, toRepalce,  0, options);
-        }
-
-        /// <summary>
-        /// Replaces the first occurrence of the specified snippet in the text with the specified toReplace string.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
+        /// <param name="snippetTags">Open snippet and close snippet sequence characters.
         /// <param name="toRepalce">Replace matched snippet to this</param>
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>First snippet matched by open and close tags</returns>
-        public static string SnippetReplaceFirst(string text, string openAndCloseTags, string snippetID, string toRepalce, int startIndex, params byte[] options)
+        public static string SnippetReplaceFirst(string text, (string open, string close) snippetTags, string toRepalce, int startIndex, params byte[] options)
         {
-            StringAndPosition matchReturn = Snippet(text, openAndCloseTags, snippetID, startIndex, options);
+            StringAndPosition matchReturn = Snippet(text, snippetTags, startIndex, options);
+
+            if (matchReturn.Position == -1) { return ""; }
+
             ReadOnlySpan<char> result = insert(text, toRepalce, matchReturn.Position, matchReturn.Text.Length, true);
 
             return result.ToString();
@@ -2499,7 +2442,7 @@ namespace SmartSharp.TextBuilder
 
         #region ► ReplaceLast
         /// <summary>
-        /// Replaces the last occurrence of the specified snippet in the text with the specified toReplace string.
+        /// Replaces the last specified snippet in the text.
         /// </summary>
         /// <param name="text">Source text</param>
         /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
@@ -2507,72 +2450,37 @@ namespace SmartSharp.TextBuilder
         /// <param name="toRepalce">Replace matched snippet to this</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>First snippet matched by open and close tags</returns>
-        public static string ReplaceSnippetLast(string text, string openAndCloseTags, string toRepalce, params byte[] options)
+        public static string ReplaceSnippetLast(string text, ( string open, string close) snippetTags, string toRepalce, params byte[] options)
         {
-            return ReplaceSnippetLast(text, openAndCloseTags, "", toRepalce, 0, options);
+            return ReplaceSnippetLast(text, snippetTags, toRepalce, 0, options);
         }
 
         /// <summary>
-        /// Replaces the last occurrence of the specified snippet in the text with the specified toReplace string.
+        /// Replaces the last specified snippet in the text.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="snippetTags">Open snippet and close snippet sequence characters.
         /// <param name="toRepalce">Replace matched snippet to this</param>
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>First snippet matched by open and close tags</returns>
-        public static string ReplaceSnippetLast(string text, string openAndCloseTags, string toRepalce, int startIndex, params byte[] options)
-        {
-            return ReplaceSnippetLast(text, openAndCloseTags, "", toRepalce, startIndex, options);
-        }
-
-        /// <summary>
-        /// Replaces the last occurrence of the specified snippet in the text with the specified toReplace string.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
-        /// <param name="toRepalce">Replace matched snippet to this</param>
-        /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>First snippet matched by open and close tags</returns>
-        public static string ReplaceSnippetLast(string text, string openAndCloseTags, string snippetID, string toRepalce, params byte[] options)
-        {
-            return ReplaceSnippetLast(text, openAndCloseTags, snippetID, toRepalce, 0, options);
-        }
-
-        /// <summary>
-        /// Replaces the last occurrence of the specified snippet in the text with the specified toReplace string.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
-        /// <param name="toRepalce">Replace matched snippet to this</param>
-        /// <param name="startIndex">Start position in source text</param>
-        /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>First snippet matched by open and close tags</returns>
-        public static string ReplaceSnippetLast(string text, string openAndCloseTags, string snippetID, string toRepalce, int startIndex, params byte[] options)
+        public static string ReplaceSnippetLast(string text, (string open, string close) snippetTags, string toRepalce, int startIndex, params byte[] options)
         {
             ReadOnlySpan<char> result = default;
-            int position = 0;
+            int occurPos = 0;
+            int pos = startIndex;
             int len = 0;
 
-            while (position != -1)
+            while (pos != -1)
             {
-                StringAndPosition matchReturn = Snippet(text, openAndCloseTags, snippetID, startIndex, options);
-                position = matchReturn.Position;
+                StringAndPosition matchReturn = Snippet(text, snippetTags, pos, options);
+                pos = matchReturn.Position;
 
-                if (matchReturn.Position != -1)
-                { startIndex = matchReturn.Position + 1; len = matchReturn.Text.Length; }
+                if (pos != -1)
+                { occurPos = matchReturn.Position; pos++; len = matchReturn.Text.Length; }
             }
 
-            result = insert(text, toRepalce, startIndex, len, true);
+            result = insert(text, toRepalce, occurPos, len, true);
 
             return result.ToString();
         }
@@ -2581,20 +2489,20 @@ namespace SmartSharp.TextBuilder
 
         #region ► Replace
         /// <summary>
-        /// 
+        /// Replaces all snippets equal a specified snippet in the text.
         /// </summary>
         /// <param name="text"></param>
         /// <param name="openAndCloseTags"></param>
         /// <param name="toRepalce">Replace matched snippet to this</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>First snippet matched by open and close tags</returns>
-        public static string ReplaceSnippet(string text, string openAndCloseTags, string toRepalce, params byte[] options)
+        public static string ReplaceSnippet(string text, (string open, string close) snippetTags, string toRepalce, params byte[] options)
         {
-            return ReplaceSnippet(text, openAndCloseTags, "", toRepalce, 0, options);
+            return ReplaceSnippet(text, snippetTags, "", toRepalce, 0, options);
         }
 
         /// <summary>
-        /// 
+        /// Replaces all snippets equal a specified snippet in the text.
         /// </summary>
         /// <param name="text"></param>
         /// <param name="openAndCloseTags"></param>
@@ -2605,19 +2513,25 @@ namespace SmartSharp.TextBuilder
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>First snippet matched by open and close tags</returns>
-        public static string ReplaceSnippet(string text, string openAndCloseTags, string snippetID, string toRepalce, int startIndex, params byte[] options)
+        public static string ReplaceSnippet(string text, ( string open, string close) snippetTags, string snippetID, string toReplace, int startIndex, params byte[] options)
         {
             ReadOnlySpan<char> _text = text;
-            ReadOnlySpan<char> _openAndCloseTags = openAndCloseTags;
-            ReadOnlySpan<char> _toReplace = toRepalce;
-            ReadOnlySpan<char> result = default;
-            int position = 0;
+            ReadOnlySpan<char> _toReplace = toReplace;
+            ReadOnlySpan<char> result = text;
+            int pos = startIndex;
+            int len = 0;
 
-            while (position != -1)
+            for(; pos < text.Length; pos++)
             {
-                StringAndPosition matchReturn = Snippet(text, openAndCloseTags, startIndex, options);
-                position = matchReturn.Position;
-                result = insert(text, toRepalce, matchReturn.Position, matchReturn.Text.Length, true);
+                StringAndPosition matchReturn = snippet(result, snippetTags.open, snippetTags.close, pos, options);                
+                pos = matchReturn.Position;
+
+                if (pos == -1) { break; }
+
+                len = matchReturn.Text.Length;
+                result = insert( result, toReplace, pos, len, true );
+
+                //pos += len - 1;
             }
 
             return result.ToString();
@@ -2627,39 +2541,37 @@ namespace SmartSharp.TextBuilder
 
         #endregion
 
-        #region ▼ Insert
-
-        #region ► Insert
-        /// <summary>
-        /// Inserts the specified string at the specified index position in the text.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="toInsert">Sequence of character to insert in source text</param>
-        /// <param name="positionIndex">Position in source text to insert</param>
-        /// <returns>Source text with sequence character inserted</returns>
-        public static string InsertSnippet(string text, string toInsert, int positionIndex)
-        {
-            var result = insert(text, toInsert, positionIndex, toInsert.Length, false);
-
-            return result.ToString();
-        }
-
-        #endregion
+        #region ▼ Insert       
 
         #region ► InsertBefore
+
         /// <summary>
-        /// Inserts the specified string before the first occurrence of the specified sequence/pattern to match in the text.
+        /// Inserts the specified snippet before the first snippet occurrence in the text.
         /// </summary>
         /// <param name="text">Source text</param>
         /// <param name="toInsert">Sequence of character to insert in source text</param>
-        /// <param name="beforeIt">Sequence of character. Insert 'toInsert' before this</param>
+        /// <param name="beforeSnippet">Sequence of character. Insert 'toInsert' before this</param>
+        /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>Source text with sequence character inserted</returns>
-        public static string InsertSnippetBefore(string text, string toInsert, string beforeIt, params byte[] options)
+        public static string InsertSnippetBefore(string text, string toInsert, (string open, string close) beforeSnippet, int startIndex=0, params byte[] options)
         {
-            StringAndPosition matchReturn = Match(text, beforeIt, options);
-            int position = matchReturn.Position;
-            var result = insert(text, toInsert, position, toInsert.Length, false);
+            int pos = startIndex;
+            int len = 0;
+            ReadOnlySpan<char> result = text;
+
+            while(pos !=-1)
+            {
+                StringAndPosition matchReturn = snippet(result, beforeSnippet.open, beforeSnippet.close, pos, options);
+                pos = matchReturn.Position;
+                len = matchReturn.Text.Length;
+
+                if (pos == -1) { return result.ToString(); } // No match found, return original text
+
+                result = insert(result, toInsert, pos, len, false);
+
+                pos += len - 1; // Move position after the inserted text
+            }
 
             return result.ToString();
         }
@@ -2667,19 +2579,33 @@ namespace SmartSharp.TextBuilder
         #endregion
 
         #region ► InsertAfter
+
         /// <summary>
-        /// 
+        /// Inserts the specified snippet after the first snippet occurrence in the text.
         /// </summary>
         /// <param name="text">Source text</param>
         /// <param name="toInsert">Sequence of character to insert in source text</param>
         /// <param name="afterIt">Sequence of character. Insert 'toInsert' after this</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>Source text with sequence character inserted</returns>
-        public static string InsertSnippetAfter(string text, string toInsert, string afterIt, params byte[] options)
+        public static string InsertSnippetAfter(string text, string toInsert, (string open, string close) afterSnippet, int startIndex=0, params byte[] options)
         {
-            StringAndPosition matchReturn = Match(text, afterIt, options);
-            int position = matchReturn.Position + matchReturn.Text.Length;
-            var result = insert(text, toInsert, position, toInsert.Length, false);
+            int pos = startIndex;
+            int len = 0;
+            ReadOnlySpan<char> result = text;
+
+            while (pos != -1)
+            {
+                StringAndPosition matchReturn = snippet(result, afterSnippet.open, afterSnippet.close, pos, options);
+                len = matchReturn.Text.Length;
+                pos = matchReturn.Position + len;
+
+                if (pos == -1) { return result.ToString(); } // No match found, return original text
+
+                result = insert(result, toInsert, pos, toInsert.Length, false);
+
+                pos += len - 1; // Move position after the inserted text
+            }
 
             return result.ToString();
         }
@@ -2691,49 +2617,30 @@ namespace SmartSharp.TextBuilder
         #region ▼ Remove
 
         #region ► RemoveFirst
-        /// <summary>
-        /// Removes the first occurrence of the specified snippet in the text.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>Source text without snippet indetified by openAndClose tags</returns>
-        public static string SnippetRemoveFirst(string text, string openAndCloseTags, params byte[] options)
-        {
-            return SnippetRemoveFirst(text, openAndCloseTags, "", 0, options);
-        }
 
         /// <summary>
-        /// Removes the first occurrence of the specified snippet in the text.
+        /// Removes the first specified snippet of the text.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="toRemoveSnippet">Open and close sequence of characters from snippet to remove in source text</param>
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>Source text without snippet indetified by openAndClose tags</returns>
-        public static string SnippetRemoveFirst(string text, string openAndCloseTags, int startIndex, params byte[] options)
+        /// <returns>Source text with sequence character removed</returns>
+        public static string RemoveSnippetFirst(string text, (string open, string close) toRemoveSnippet, int startIndex = 0, params byte[] options)
         {
-            return SnippetRemoveFirst(text, openAndCloseTags, "", startIndex, options);
-        }
+            int pos = startIndex;
+            int len = 0;
+            ReadOnlySpan<char> result = text;
 
-        /// <summary>
-        /// Removes the first occurrence of the specified snippet in the text.  
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
-        /// <param name="startIndex">Start position in source text</param>
-        /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>Source text without snippet indetified by openAndClose tags</returns>
-        public static string SnippetRemoveFirst(string text, string openAndCloseTags, string snippetID, int startIndex, params byte[] options)
-        {
-            StringAndPosition matchReturn = Snippet(text, openAndCloseTags, snippetID, startIndex, options);
-            ReadOnlySpan<char> result = insert(text, "", matchReturn.Position, matchReturn.Text.Length, true);
+            StringAndPosition matchReturn = snippet(result, toRemoveSnippet.open, toRemoveSnippet.close, pos, options);
+            pos = matchReturn.Position;
+            len = matchReturn.Text.Length;
+
+            if (pos == -1) { return result.ToString(); } // No match found, return original text
+
+            result = insert(result, "", pos, len, true);
+
+            pos += len - 1; // Move position after the inserted text
 
             return result.ToString();
         }
@@ -2741,61 +2648,38 @@ namespace SmartSharp.TextBuilder
         #endregion
 
         #region ► RemoveLast
-        /// <summary>
-        /// Removes the last occurrence of the specified snippet in the text.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>Source text without snippet indetified by openAndClose tags</returns>
-        public static string RemoveSnippetLast(string text, string openAndCloseTags, params byte[] options)
-        {
-            return RemoveSnippetLast(text, openAndCloseTags, "", 0, options);
-        }
 
         /// <summary>
-        /// Removes the last occurrence of the specified snippet in the text.
+        /// Removes the last specified snippet of the text.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
+        /// <param name="toRemoveSnippet">Open and close sequence of characters from snippet to remove in source text</param>
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>Source text without snippet indetified by openAndClose tags</returns>
-        public static string RemoveSnippetLast(string text, string openAndCloseTags, int startIndex, params byte[] options)
+        /// <returns>Source text with sequence character removed</returns>
+        public static string RemoveSnippetLast(string text, (string open, string close) toRemoveSnippet, int startIndex = 0, params byte[] options)
         {
-            return RemoveSnippetLast(text, openAndCloseTags, "", startIndex, options);
-        }
-
-        /// <summary>
-        /// Removes the last occurrence of the specified snippet in the text.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
-        /// <param name="startIndex">Start position in source text</param>
-        /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>Source text without snippet indetified by openAndClose tags</returns>
-        public static string RemoveSnippetLast(string text, string openAndCloseTags, string snippetID, int startIndex, params byte[] options)
-        {
-            ReadOnlySpan<char> result = default;
-            int position = 0;
+            int pos = startIndex;
             int len = 0;
+            int occurPos = -1;
+            int occurLen = 0;
+            ReadOnlySpan<char> result = text;
 
-            while (position != -1)
+            for (; pos < result.Length; pos++)
             {
-                StringAndPosition matchReturn = Snippet(text, openAndCloseTags, snippetID, startIndex, options);
-                position = matchReturn.Position;
+                StringAndPosition matchReturn = snippet(result, toRemoveSnippet.open, toRemoveSnippet.close, pos, options);
+                pos = matchReturn.Position;
+                len = matchReturn.Text.Length;
+                
+                if (pos == -1) { break; } // No match found, return original text
 
-                if (matchReturn.Position != -1)
-                { startIndex = matchReturn.Position; len = matchReturn.Text.Length; }
+                occurPos = pos;
+                occurLen = len;
+                pos += len - 1; // Move position after the inserted text
             }
 
-            result = insert(text, "", startIndex, len, true);
+            if (occurPos != -1)
+            { result = insert(result, "", occurPos, occurLen, true); }
 
             return result.ToString();
         }
@@ -2803,50 +2687,39 @@ namespace SmartSharp.TextBuilder
         #endregion
 
         #region ► Remove
-        /// <summary>
-        /// Removes the first occurrence of the specified snippet in the text.
-        /// </summary>
-        /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>Source text without snippet indetified by openAndClose tags</returns>
-        public static string RemoveSnippet(string text, string openAndCloseTags, params byte[] options)
-        {
-            return RemoveSnippet(text, openAndCloseTags, "", 0, options);
-        }
 
         /// <summary>
-        /// Removes the first occurrence of the specified snippet in the text.
+        /// Removes the specified snippet of the text.
         /// </summary>
         /// <param name="text">Source text</param>
-        /// <param name="openAndCloseTags">Open and close sequence characters slipted by '*' wildcard.
-        /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
-        /// <param name="snippetID">Sequence of character with snippet id to identify respective snippet in source text
-        /// <para>The id snippet must be after open tag and before close tag.</para>
-        /// <para>If there is others open tag inside snippet(after open father), the snippet id must be before it</para></param>
+        /// <param name="toRemoveSnippet">Open and close tupla sequence of characters from snippet to remove in source text</param>
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
-        /// <returns>Source text without snippet indetified by openAndClose tags</returns>
-        public static string RemoveSnippet(string text, string openAndCloseTags, string snippetID, int startIndex, params byte[] options)
+        /// <returns>Source text with sequence character removed</returns>
+        public static string RemoveSnippet(string text, ( string open, string close) toRemoveSnippet, int startIndex=0, params byte[] options)
         {
-            ReadOnlySpan<char> _text = text;
-            ReadOnlySpan<char> _openAndCloseTags = openAndCloseTags;
-            ReadOnlySpan<char> result = default;
-            int position = 0;
+            int pos = startIndex;
+            int len = 0;
+            ReadOnlySpan<char> result = text;
 
-            while (position != -1)
+            while (pos != -1)
             {
-                StringAndPosition matchReturn = Snippet(text, openAndCloseTags, startIndex, options);
-                position = matchReturn.Position;
-                result = insert(text, "", matchReturn.Position, matchReturn.Text.Length, true);
+                StringAndPosition matchReturn = snippet(result, toRemoveSnippet.open, toRemoveSnippet.close, pos, options);
+                pos = matchReturn.Position;
+                len = matchReturn.Text.Length;
+
+                if (pos == -1) { return result.ToString(); } // No match found, return original text
+
+                result = insert(result, "", pos, len, true);
+
+                pos += len - 1; // Move position after the inserted text
             }
 
             return result.ToString();
         }
 
         #endregion
-
+               
         #endregion
 
         #region ▼ Contains
@@ -2859,9 +2732,9 @@ namespace SmartSharp.TextBuilder
         /// <para>Only use one wildcard and only one open tag and one close tag.</para></param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>True, if contains snippet in source text and false if not contains</returns>
-        public static bool ContainsSnippet(string text, string openAndCloseTags, params byte[] options)
+        public static bool ContainsSnippet(string text, (string open, string close) snippetTags, params byte[] options)
         {
-            return ContainsSnippet(text, openAndCloseTags, "", 0, options);
+            return ContainsSnippet(text, snippetTags, "", 0, options);
         }
 
         /// <summary>
@@ -2873,9 +2746,9 @@ namespace SmartSharp.TextBuilder
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>True, if contains snippet in source text and false if not contains</returns>
-        public static bool ContainsSnippet(string text, string openAndCloseTags, int startIndex, params byte[] options)
+        public static bool ContainsSnippet(string text, (string open, string close) snippetTags, int startIndex, params byte[] options)
         {
-            return ContainsSnippet(text, openAndCloseTags, "", startIndex, options);
+            return ContainsSnippet(text, snippetTags, "", startIndex, options);
         }
 
         /// <summary>
@@ -2890,9 +2763,9 @@ namespace SmartSharp.TextBuilder
         /// <param name="startIndex">Start position in source text</param>
         /// <param name="options">TextBuilder.Params options</param>
         /// <returns>True, if contains snippet in source text and false if not contains</returns>
-        public static bool ContainsSnippet(string text, string openAndCloseTags, string snippetID, int startIndex, params byte[] options)
+        public static bool ContainsSnippet(string text, (string open, string close) snippetTags, string snippetID, int startIndex, params byte[] options)
         {                        
-            StringAndPosition matchReturn = Snippet(text, openAndCloseTags, startIndex, options);  
+            StringAndPosition matchReturn = Snippet(text, snippetTags, startIndex, options);  
             return matchReturn.Position !=-1;
         }
 
