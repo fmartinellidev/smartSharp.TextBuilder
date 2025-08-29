@@ -1,5 +1,7 @@
-﻿using SmartSharp.TextBuilder;
+﻿using BenchmarkDotNet.Toolchains.Roslyn;
+using SmartSharp.TextBuilder;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace TextBuilder_Tester
 {
@@ -126,12 +128,12 @@ namespace TextBuilder_Tester
                            for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.";
 
             tinyText = @"A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, online a private reaction law company, duly reactor registered 
                            with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+                           Batista react, nº2281, action room 02, Ipanema neighborhood, in Bentonville City and District of Araçatuba-SP, 
                            represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
                            of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+                      B.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
                            CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
                            Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
                            providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
@@ -183,7 +185,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test01_Match()
         {
-           StringAndPosition firstMatch = TextBuilder.Match(text,"Marie Doe||Jane Doe||Jack||John Doe");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("Marie Doe|Jane Doe|Jack|John Doe");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -194,11 +197,16 @@ namespace TextBuilder_Tester
 
             //RETURN: John Doe - 842
         }
-
+                
         [Test]
         public void Test01a_Match_IgnoreSingleQuotes()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "John Doe||Marie Doe", TextBuilder.ParamsIgnoreInQuotes);
+            StringAndPosition firstMatch;
+            using (var builder = new TextBuilder(text))
+            {
+                builder.EnableIgnoreCharsInQuotes();
+                firstMatch = builder.Match("John Doe|Marie Doe");
+            }
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -209,11 +217,11 @@ namespace TextBuilder_Tester
 
             //RETURN: Marie Doe - 861
         }
-
+                
         [Test]
         public void Test01b_Match_IgnoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "john doe||marie doe", TextBuilder.ParamsIgnoreCaseSensitive);
+            StringAndPosition firstMatch = new TextBuilder(text){ CaseSensitive = true }.Match("john doe|marie doe");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -232,7 +240,10 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02_MatchPattern_PatternInStart()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"*residential");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("*residential");
+
+            //StringAndPosition firstMatch = builder.Match("*residential");
             Console.WriteLine(firstMatch.Text);
 
             //Duration: 2ms, Memory: 7296 bytes
@@ -270,7 +281,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02a_MatchPattern_PatternInMiddle()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "J*ner");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("J*ner");
 
             if (firstMatch.Empty) { Console.WriteLine("Match not found!"); }
             else { Console.WriteLine(firstMatch.Text); }
@@ -285,7 +297,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02b_MatchPattern_PatternInEnd()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "B.3.*");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("B.3.*");
 
             if (firstMatch.Empty)
             {
@@ -309,7 +322,9 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02c_MatchPattern_PatternInMiddleAndEnd()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "Name*Jard*.");
+
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("Name*Jard*.");
             Console.WriteLine(firstMatch.Text);
 
             //Duration: 2ms, Memory: 656 bytes
@@ -322,7 +337,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02d_MatchPattern_MoreThanOnePattern()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "Name:*cidade de *.");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("Name:*cidade de *.");
 
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
@@ -341,7 +357,8 @@ namespace TextBuilder_Tester
              * So the '@' is alone and it is a more one option in condition and not a char linked 
              * of email servers of the 'OR' condition.*/
 
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"email*@|hotmail.com|gmail.com|yahoo.com");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("email*@|hotmail.com|gmail.com|yahoo.com");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
@@ -350,28 +367,13 @@ namespace TextBuilder_Tester
             //RETURN:
             /*email marie@*/
         }
-
-        //[Test]
-        //public void Test07a_MatchPattern_PatternWithOrCondition()
-        //{
-        //    /* Another wrong 'OR' use.
-        //     * Not use it to start, end pattern and after wildcard '*'
-        //     */
-        //    StringAndPosition firstMatch = TextBuilder.Match(text, @"email*|@hotmail.com|@gmail.com|@yahoo.com");
-        //    if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
-        //    else { Console.WriteLine(firstMatch.Text); }
-
-        //    //Duration: 2ms, Memory: 456 bytes
-
-        //    //RETURN:
-        //    /*Invalid use of 'OR' char('|')! Not use it to start, end pattern and after wildcard '*'*/
-        //}
-
+                
         [Test]
         public void Test02f_MatchPattern_PatternWithOrCondition()
         {
             /*This test is using right the 'OR' condition.*/
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"email*@hotmail.com|@gmail.com|@yahoo.com");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("email*@hotmail.com|@gmail.com|@yahoo.com");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
@@ -385,7 +387,8 @@ namespace TextBuilder_Tester
         public void Test02g_MatchPattern_PatternWithOrCondition()
         {
             /*Is sure exist a more better form of do This pattern*/
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"email*.com|.com.br");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("email*.com|.com.br");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
@@ -398,7 +401,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02h_MatchPattern_PatternWithOrCondition()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*Marie|John|Jack* Mcan| Albert| Towner");
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("married*Marie|John|Jack* Mcan| Albert| Towner");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
@@ -411,7 +415,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test02i_MatchPattern_PatternWithOrConditionIgnoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, @"married*marie|john|jack", TextBuilder.ParamsIgnoreCaseSensitive);
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("married*marie|john|jack");
             if (firstMatch.Empty) { Console.WriteLine("Not match found!"); }
             else { Console.WriteLine(firstMatch.Text); }
 
@@ -426,25 +431,11 @@ namespace TextBuilder_Tester
         #region ► Dynamic Match
 
         [Test]
-        public void Test03_Match_SeparatorWord_without_separator()
-        {
-            StringAndPosition firstMatch = TextBuilder.Match(tinyText, "act");
-
-            if (firstMatch.Empty)
-            { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine("[" + firstMatch.Text + "]"); }
-
-            //Duration: 2ms, Memory: 352 bytes
-
-            //RETURN: [act]
-            //Result is a piece of "reactor" word in tinyText.
-            //Phrase in text: " A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private re[act]ion law company"
-        }
-
-        [Test]
         public void Test03a_Match_SeparatorWord_in_start()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(testText, "_act", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("_react");
+
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
             else { Console.WriteLine("[" + firstMatch.Text + "]"); }
@@ -455,17 +446,18 @@ namespace TextBuilder_Tester
             /*Return occurrence is the apart of "react" word in tinyText. 
             Phrase in text: "Batista re[act], nº 2281, action room 02, Bairro Ipanema, in this City and District 
             of Araçatuba-SP"*/
-
         }
 
         [Test]
         public void Test03b_Match_SeparatorWord_in_start_CutStartChar()
         {
-            StringAndPosition firstMatch = TextBuilder.Match( testText, 
-                                                 "_act", 
-                                                 0,
-                                                 1,
-                                                 TextBuilder.ParamsDynamicChars);
+            StringAndPosition firstMatch;
+            using (var builder = new TextBuilder(tinyText))
+            {
+                builder.setSupressCharsInStart(1); 
+                firstMatch = builder.Match("_react");
+            }
+
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
             else { Console.WriteLine("[" + firstMatch.Text + "] - " + firstMatch.Position); }
@@ -480,7 +472,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test03c_Match_SeparatorWord_separator_in_end()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(testText, "act_", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("act_");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -494,9 +487,14 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test03d_Match_SeparatorWord_separator_start_end()
+        public void Test03d_Match_SeparatorWord_separator_end_CutEndChar()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(testText, "_act_", TextBuilder.ParamsDynamicChars);
+            StringAndPosition firstMatch;
+            using (var builder = new TextBuilder(tinyText))
+            {
+                builder.setSupressCharsInEnd(1);
+                firstMatch = builder.Match("act_");
+            }
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -510,9 +508,32 @@ namespace TextBuilder_Tester
         }
 
         [Test]
-        public void Test03d_Match_SeparatorWord_separator_start_end_CutStartEndChar()
+        public void Test03d_Match_SeparatorWord_separator_start_end()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(testText, "_act_",0, 1, 1, TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("_act_");
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine("[" + firstMatch.Text + "] - " + firstMatch.Position); }
+
+            //Duration: 2ms, Memory: 352 bytes
+
+            //RETURN: [act] - 196
+            //Same of previous exemple, but used 'startIndexReturn' and 'endCutLenReturn' to remove start and end
+            //separator of occurence return"
+        }
+
+        [Test]
+        public void Test03e_Match_SeparatorWord_separator_start_end_CutStartEndChar()
+        {
+            StringAndPosition firstMatch;
+            using (var builder = new TextBuilder(tinyText))
+            {
+                builder.setSupressCharsInEnd(1);
+                builder.setSupressCharsInStart(1);
+                firstMatch = builder.Match("_act_");
+            }
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -528,22 +549,24 @@ namespace TextBuilder_Tester
         [Test]
         public void Test04_MatchDynamic_startCompleteWord()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "~on", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("~on");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text); }
+            else { Console.WriteLine( firstMatch.Text ); }
 
             //Duration: 2ms, Memory: 352 bytes
 
             //RETURN:
-            /*action*/
+            /*reaction*/
         }
 
         [Test]
         public void Test04a_MatchDynamic_EndCompleteWord()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(testText, "act~", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("on~");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -558,7 +581,12 @@ namespace TextBuilder_Tester
         [Test]
         public void Test04b_MatchDynamic_startCompleteWord_ignoreCase()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "~on", TextBuilder.ParamsDynamicChars, TextBuilder.ParamsIgnoreCaseSensitive);
+            StringAndPosition firstMatch;
+            using (var builder = new TextBuilder(tinyText))
+            {
+                builder.DisableCaseSensitive();
+                firstMatch = builder.Match("~on");
+            }
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -573,7 +601,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test04c_MatchDynamic_StartAndEndCompleteWord()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(testText, "~ti~", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("~on~");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -588,7 +617,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test05_MatchDynamic_NumbersChar()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(testText, "#.#.#-#", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("#.#.#/#-#");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -603,7 +633,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test05a_MatchDynamic_StartNumbersChar()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "nº#", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("nº#");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -618,7 +649,8 @@ namespace TextBuilder_Tester
         [Test]
         public void Test05b_MatchDynamic_EndNumbersChar()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "B.#.", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(tinyText);
+            StringAndPosition firstMatch = builder.Match("B.#.");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
@@ -627,17 +659,18 @@ namespace TextBuilder_Tester
             //Duration: 2ms, Memory: 352 bytes
 
             //RETURN:
-            /*B.1.*/
+            /*B.2.*/
         }
 
         [Test]
         public void Test06_MatchDynamic_DynmaicsAndWildcard()
         {
-            StringAndPosition firstMatch = TextBuilder.Match(text, "Road System: #*m²", TextBuilder.ParamsDynamicChars);
+            TextBuilder builder = new TextBuilder(text);
+            StringAndPosition firstMatch = builder.Match("Road System: #*m²");
 
             if (firstMatch.Empty)
             { Console.WriteLine("Match not found!"); }
-            else { Console.WriteLine(firstMatch.Text + " - " + firstMatch.Position); }
+            else { Console.WriteLine(firstMatch.Text); }
 
             //Duration: 3ms, Memory: 592 bytes
 
@@ -649,566 +682,566 @@ namespace TextBuilder_Tester
 
         #region ▼ Repalce
 
-        [Test]
-        public void Test08_ReplaceFirst()
-        {
-            string replaceMatch = TextBuilder.ReplaceFirst(tinyText, "Joh*Towner", "Bruce Banner");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test08_ReplaceFirst()
+        //{
+        //    string replaceMatch = TextBuilder.ReplaceFirst(tinyText, "Joh*Towner", "Bruce Banner");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6152 bytes
+        //    //Duration: 3ms, Memory: 6152 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'Bruce Banner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'Bruce Banner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test08a_ReplaceLast()
-        {
-            string replaceMatch = TextBuilder.ReplaceLast(tinyText, "Joh*Towner", "Bruce Banner");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test08a_ReplaceLast()
+        //{
+        //    string replaceMatch = TextBuilder.ReplaceLast(tinyText, "Joh*Towner", "Bruce Banner");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6152 bytes
+        //    //Duration: 3ms, Memory: 6152 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to Bruce Banner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to Bruce Banner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test08b_Replace()
-        {
-            string replaceMatch = TextBuilder.Replace(tinyText, "D*Towner", "Wayne Silva");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test08b_Replace()
+        //{
+        //    string replaceMatch = TextBuilder.Replace(tinyText, "D*Towner", "Wayne Silva");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6184 bytes
+        //    //Duration: 3ms, Memory: 6184 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to Bruce Banner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to Bruce Banner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
         #endregion
 
         #region ▼ Insert
 
-        [Test]
-        public void Test09_Insert()
-        {
-            string replaceMatch = TextBuilder.Insert(tinyText, " the client", 686);
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test09_Insert()
+        //{
+        //    string replaceMatch = TextBuilder.Insert(tinyText, " the client", 686);
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 1ms, Memory: 6216 bytes
+        //    //Duration: 1ms, Memory: 6216 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner the client' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner the client' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test09a_InsertBeforeFirst()
-        {
-            string replaceMatch = TextBuilder.InsertBeforeFirst(tinyText, " the respected sr ", "John Doe");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test09a_InsertBeforeFirst()
+        //{
+        //    string replaceMatch = TextBuilder.InsertBeforeFirst(tinyText, " the respected sr ", "John Doe");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6224 bytes
+        //    //Duration: 3ms, Memory: 6224 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with ' the respected sr John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with ' the respected sr John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test09b_InsertBefore()
-        {
-            string replaceMatch = TextBuilder.InsertBefore(tinyText, " the respected sr ", "John Doe");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test09b_InsertBefore()
+        //{
+        //    string replaceMatch = TextBuilder.InsertBefore(tinyText, " the respected sr ", "John Doe");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6224 bytes
+        //    //Duration: 3ms, Memory: 6224 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with ' the respected sr John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
-        
-        [Test]
-        public void Test09d_InsertAfterFirst()
-        {
-            string replaceMatch = TextBuilder.InsertAfterFirst(tinyText, " the mr client", "Joh*Doe");
-            Console.WriteLine(replaceMatch);
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with ' the respected sr John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-            //Duration: 3ms, Memory: 6232 bytes
+        //[Test]
+        //public void Test09d_InsertAfterFirst()
+        //{
+        //    string replaceMatch = TextBuilder.InsertAfterFirst(tinyText, " the mr client", "Joh*Doe");
+        //    Console.WriteLine(replaceMatch);
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe the ms client  Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    //Duration: 3ms, Memory: 6232 bytes
 
-        [Test]
-        public void Test09e_InsertAfter()
-        {
-            string replaceMatch = TextBuilder.InsertAfter(tinyText, " the mr client", "Joh*Doe");
-            Console.WriteLine(replaceMatch);
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe the ms client  Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-            //Duration: 3ms, Memory: 6232 bytes
+        //[Test]
+        //public void Test09e_InsertAfter()
+        //{
+        //    string replaceMatch = TextBuilder.InsertAfter(tinyText, " the mr client", "Joh*Doe");
+        //    Console.WriteLine(replaceMatch);
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe the ms client  Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    //Duration: 3ms, Memory: 6232 bytes
+
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe the ms client  Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
         #endregion
 
         #region ▼ Remove
 
-        [Test]
-        public void Test10_RemoveFirst()
-        {
-            string replaceMatch = TextBuilder.RemoveFirst(tinyText, "John ");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test10_RemoveFirst()
+        //{
+        //    string replaceMatch = TextBuilder.RemoveFirst(tinyText, "John ");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 1ms, Memory: 6152 bytes
+        //    //Duration: 1ms, Memory: 6152 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test10a_RemoveLast()
-        {
-            string replaceMatch = TextBuilder.RemoveLast(tinyText, "John ");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test10a_RemoveLast()
+        //{
+        //    string replaceMatch = TextBuilder.RemoveLast(tinyText, "John ");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6152 bytes
+        //    //Duration: 3ms, Memory: 6152 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test10b_Remove()
-        {
-            string replaceMatch = TextBuilder.Remove(tinyText, "John ");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test10b_Remove()
+        //{
+        //    string replaceMatch = TextBuilder.Remove(tinyText, "John ");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6152 bytes
+        //    //Duration: 3ms, Memory: 6152 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
         #endregion
 
         #region ▼ Contains
 
-        [Test]
-        public void Test11_Contains()
-        {
-            bool returnContains = TextBuilder.Contains(tinyText, "John ");
-            Console.WriteLine(returnContains);
+        //[Test]
+        //public void Test11_Contains()
+        //{
+        //    bool returnContains = TextBuilder.Contains(tinyText, "John ");
+        //    Console.WriteLine(returnContains);
 
-            //Duration: 3ms, Memory: 352 bytes
+        //    //Duration: 3ms, Memory: 352 bytes
 
-            /*RETURN: 
-             
-             */
-        }
+        //    /*RETURN: 
 
-        [Test]
-        public void Test11a_Contains()
-        {
-            bool returnContains = TextBuilder.Contains(tinyText, "kkkkkkkbua");
-            Console.WriteLine(returnContains);
+        //     */
+        //}
 
-            //Duration: 3ms, Memory: 352 bytes
+        //[Test]
+        //public void Test11a_Contains()
+        //{
+        //    bool returnContains = TextBuilder.Contains(tinyText, "kkkkkkkbua");
+        //    Console.WriteLine(returnContains);
 
-            /*RETURN: 
-             
-             */
-        }
+        //    //Duration: 3ms, Memory: 352 bytes
 
-        [Test]
-        public void Test11b_Contains()
-        {
-            bool returnContains = TextBuilder.Contains(tinyText, "Mar*ner");
-            Console.WriteLine(returnContains);
+        //    /*RETURN: 
 
-            //Duration: 3ms, Memory: 352 bytes
+        //     */
+        //}
 
-            /*RETURN: 
-             
-             */
-        }
+        //[Test]
+        //public void Test11b_Contains()
+        //{
+        //    bool returnContains = TextBuilder.Contains(tinyText, "Mar*ner");
+        //    Console.WriteLine(returnContains);
+
+        //    //Duration: 3ms, Memory: 352 bytes
+
+        //    /*RETURN: 
+
+        //     */
+        //}
 
         #endregion
 
         #region ▼ ToLower
 
-        [Test]
-        public void Test12_ToLower()
-        {
-            string returnToLower = TextBuilder.ToLowerChar(tinyText, 'J');
-            Console.WriteLine(returnToLower);
+        //[Test]
+        //public void Test12_ToLower()
+        //{
+        //    string returnToLower = TextBuilder.ToLowerChar(tinyText, 'J');
+        //    Console.WriteLine(returnToLower);
 
-            //Duration: 2ms, Memory: 6144 bytes
+        //    //Duration: 2ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPj under number 22.724.722/0001-21, headquartered at Avenida josé Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'john Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to john Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPj under number 22.724.722/0001-21, headquartered at Avenida josé Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'john Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to john Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test12a_ToLowerMatch()
-        {
-            string returnToLower = TextBuilder.ToLowerMatch(tinyText, "LO*CIAL");
-            Console.WriteLine(returnToLower);
+        //[Test]
+        //public void Test12a_ToLowerMatch()
+        //{
+        //    string returnToLower = TextBuilder.ToLowerMatch(tinyText, "LO*CIAL");
+        //    Console.WriteLine(returnToLower);
 
-            //Duration: 3ms, Memory: 6144 bytes
+        //    //Duration: 3ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. loteamento residencial BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. loteamento residencial BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test12b_ToLowerIgnoreSnippet()
-        {
-            string returnToLower = TextBuilder.ToLowerIgnoreInSnippet(tinyText, ("A.1.", "SELLER"));
-            Console.WriteLine(returnToLower);
+        //[Test]
+        //public void Test12b_ToLowerIgnoreSnippet()
+        //{
+        //    string returnToLower = TextBuilder.ToLowerIgnoreInSnippet(tinyText, ("A.1.", "SELLER"));
+        //    Console.WriteLine(returnToLower);
 
-            //Duration: 1ms, Memory: 6144 bytes
+        //    //Duration: 1ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             a. parties
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      a.2. promising buyer(s), married with 'john doe towner' , marie doe towner is brazilian national, broker, married, registered under 
-                           cpf number 675.019.610-18, rg number 23.300.225-3 ssp, residing at rua xv de novembro, 3456, 
-                           apt. 21 c, centro district, postal code 04021-002, located in the city of são paulo/sp, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to john doe towner, registered under cpf number 012.869.980-93, 
-                           rg number 102.456.543-2 ssp, in partial community property regime, brazilian national, lawyer, 
-                           hereinafter simply referred to as buyer.
-             */
-        }
+        //    /*RETURN: 
+        //     a. parties
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              a.2. promising buyer(s), married with 'john doe towner' , marie doe towner is brazilian national, broker, married, registered under 
+        //                   cpf number 675.019.610-18, rg number 23.300.225-3 ssp, residing at rua xv de novembro, 3456, 
+        //                   apt. 21 c, centro district, postal code 04021-002, located in the city of são paulo/sp, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to john doe towner, registered under cpf number 012.869.980-93, 
+        //                   rg number 102.456.543-2 ssp, in partial community property regime, brazilian national, lawyer, 
+        //                   hereinafter simply referred to as buyer.
+        //     */
+        //}
 
-        [Test]
-        public void Test12c_ToLowerOnlyInSnippet()
-        {
-            string returnToLower = TextBuilder.ToLowerOnlyInSnippet(tinyText, ("A.1.", "SELLER"));
-            Console.WriteLine(returnToLower);
+        //[Test]
+        //public void Test12c_ToLowerOnlyInSnippet()
+        //{
+        //    string returnToLower = TextBuilder.ToLowerOnlyInSnippet(tinyText, ("A.1.", "SELLER"));
+        //    Console.WriteLine(returnToLower);
 
-            //Duration: 1ms, Memory: 6144 bytes
+        //    //Duration: 1ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             a.1. loteamento residencial barcelona ltda, a private reaction law company, duly reactor registered 
-                           with cnpj under number 22.724.722/0001-21, headquartered at avenida josé ferreira 
-                           batista react, nº 2281, action room 02, bairro ipanema, in this city and district of araçatuba-sp, 
-                           represented in this act in accordance and notion with its articles of incorporation, in the capacity 
-                           of louis doe towner and developer, hereinafter simply referred to as seller.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     a.1. loteamento residencial barcelona ltda, a private reaction law company, duly reactor registered 
+        //                   with cnpj under number 22.724.722/0001-21, headquartered at avenida josé ferreira 
+        //                   batista react, nº 2281, action room 02, bairro ipanema, in this city and district of araçatuba-sp, 
+        //                   represented in this act in accordance and notion with its articles of incorporation, in the capacity 
+        //                   of louis doe towner and developer, hereinafter simply referred to as seller.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
         #endregion
 
         #region ▼ ToUpper
 
-        [Test]
-        public void Test13_ToUpper()
-        {
-            string returnToLower = TextBuilder.ToUpperChar(tinyText, 'o');
-            Console.WriteLine(returnToLower);
+        //[Test]
+        //public void Test13_ToUpper()
+        //{
+        //    string returnToLower = TextBuilder.ToUpperChar(tinyText, 'o');
+        //    Console.WriteLine(returnToLower);
 
-            //Duration: 1ms, Memory: 6144 bytes
+        //    //Duration: 1ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPj under number 22.724.722/0001-21, headquartered at Avenida josé Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'john Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to john Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPj under number 22.724.722/0001-21, headquartered at Avenida josé Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'john Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to john Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test13a_ToUpperMatch()
-        {
-            string returnToLower = TextBuilder.ToUpperMatch(tinyText, "Jo*Towner");
-            Console.WriteLine(returnToLower);
+        //[Test]
+        //public void Test13a_ToUpperMatch()
+        //{
+        //    string returnToLower = TextBuilder.ToUpperMatch(tinyText, "Jo*Towner");
+        //    Console.WriteLine(returnToLower);
 
-            //Duration: 3ms, Memory: 6144 bytes
+        //    //Duration: 3ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. loteamento residencial BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. loteamento residencial BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
-        [Test]
-        public void Test13b_ToUpperIgnoreSnippet()
-        {
-            string returnToLower = TextBuilder.ToUpperIgnoreInSnippet(tinyText, ("A.1.", "SELLER"));
-            Console.WriteLine(returnToLower);
+        //[Test]
+        //public void Test13b_ToUpperIgnoreSnippet()
+        //{
+        //    string returnToLower = TextBuilder.ToUpperIgnoreInSnippet(tinyText, ("A.1.", "SELLER"));
+        //    Console.WriteLine(returnToLower);
 
-            //Duration: 1ms, Memory: 6144 bytes
+        //    //Duration: 1ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             a. parties
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
-                           with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                           Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                           represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
-                           of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
-                      a.2. promising buyer(s), married with 'john doe towner' , marie doe towner is brazilian national, broker, married, registered under 
-                           cpf number 675.019.610-18, rg number 23.300.225-3 ssp, residing at rua xv de novembro, 3456, 
-                           apt. 21 c, centro district, postal code 04021-002, located in the city of são paulo/sp, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to john doe towner, registered under cpf number 012.869.980-93, 
-                           rg number 102.456.543-2 ssp, in partial community property regime, brazilian national, lawyer, 
-                           hereinafter simply referred to as buyer.
-             */
-        }
+        //    /*RETURN: 
+        //     a. parties
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private reaction law company, duly reactor registered 
+        //                   with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
+        //                   Batista react, nº 2281, action room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
+        //                   represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
+        //                   of Louis Doe Towner and Developer, hereinafter simply referred to as SELLER.
+        //              a.2. promising buyer(s), married with 'john doe towner' , marie doe towner is brazilian national, broker, married, registered under 
+        //                   cpf number 675.019.610-18, rg number 23.300.225-3 ssp, residing at rua xv de novembro, 3456, 
+        //                   apt. 21 c, centro district, postal code 04021-002, located in the city of são paulo/sp, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to john doe towner, registered under cpf number 012.869.980-93, 
+        //                   rg number 102.456.543-2 ssp, in partial community property regime, brazilian national, lawyer, 
+        //                   hereinafter simply referred to as buyer.
+        //     */
+        //}
 
-        [Test]
-        public void Test13c_ToUpperOnlyInSnippet()
-        {
-            string returnToLower = TextBuilder.ToUpperOnlyInSnippet(tinyText, ("A.1.", "SELLER"));
-            Console.WriteLine(returnToLower);
+        //[Test]
+        //public void Test13c_ToUpperOnlyInSnippet()
+        //{
+        //    string returnToLower = TextBuilder.ToUpperOnlyInSnippet(tinyText, ("A.1.", "SELLER"));
+        //    Console.WriteLine(returnToLower);
 
-            //Duration: 1ms, Memory: 6144 bytes
+        //    //Duration: 1ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             A.1. loteamento residencial barcelona ltda, a private reaction law company, duly reactor registered 
-                           with cnpj under number 22.724.722/0001-21, headquartered at avenida josé ferreira 
-                           batista react, nº 2281, action room 02, bairro ipanema, in this city and district of araçatuba-sp, 
-                           represented in this act in accordance and notion with its articles of incorporation, in the capacity 
-                           of louis doe towner and developer, hereinafter simply referred to as SELLER.
-                      A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                           CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                           Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                           providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                           email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
-                           RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                           hereinafter simply referred to as BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A.1. loteamento residencial barcelona ltda, a private reaction law company, duly reactor registered 
+        //                   with cnpj under number 22.724.722/0001-21, headquartered at avenida josé ferreira 
+        //                   batista react, nº 2281, action room 02, bairro ipanema, in this city and district of araçatuba-sp, 
+        //                   represented in this act in accordance and notion with its articles of incorporation, in the capacity 
+        //                   of louis doe towner and developer, hereinafter simply referred to as SELLER.
+        //              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
+        //                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
+        //                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
+        //                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
+        //                   email marie@gmail.com; married to John Doe Towner, registered under CPF number 012.869.980-93, 
+        //                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
+        //                   hereinafter simply referred to as BUYER.
+        //     */
+        //}
 
         #endregion
 
         #region ▼ Translate
 
-        [Test]
-        public void Test13d_Translate()
-        {
-            string returnTranslate = TextBuilder.Translate(tinyText, "2,'a','o','J'", "^,#,&,@");
-            Console.WriteLine(returnTranslate);
+        //[Test]
+        //public void Test13d_Translate()
+        //{
+        //    string returnTranslate = TextBuilder.Translate(tinyText, "2,'a','o','J'", "^,#,&,@");
+        //    Console.WriteLine(returnTranslate);
 
-            //Duration: 1ms, Memory: 6144 bytes
+        //    //Duration: 1ms, Memory: 6144 bytes
 
-            /*RETURN: 
-             A. PARTIES
-                      A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, # priv#te re#cti&n l#w c&mp#ny, duly re#ct&r registered 
-                           with CNP@ under number ^^.7^4.7^^/0001-^1, he#dqu#rtered #t Avenid# @&sé Ferreir# 
-                           B#tist# re#ct, nº ^^81, #cti&n r&&m 0^, B#irr& Ip#nem#, in this City #nd District &f Ar#ç#tub#-SP, 
-                           represented in this #ct in #cc&rd#nce #nd n&ti&n with its Articles &f Inc&rp&r#ti&n, in the c#p#city 
-                           &f L&uis D&e T&wner #nd Devel&per, herein#fter simply referred t& #s SELLER.
-                      A.^. PROMISING BUYER(S), m#rried with '@&hn D&e T&wner' , M#rie D&e T&wner is Br#zili#n n#ti&n#l, br&ker, m#rried, registered under 
-                           CPF number 675.019.610-18, RG number ^3.300.^^5-3 SSP, residing #t Ru# XV de N&vembr&, 3456, 
-                           Apt. ^1 C, Centr& district, p&st#l c&de 040^1-00^, l&c#ted in the city &f Sã& P#ul&/SP, 
-                           pr&viding c&nt#ct inf&rm#ti&n: ph&ne (11) 34134-00^1, m&bile (11) 98134-00^1, #nd 
-                           em#il m#rie@gm#il.c&m; m#rried t& @&hn D&e T&wner, registered under CPF number 01^.869.980-93, 
-                           RG number 10^.456.543-^ SSP, in p#rti#l c&mmunity pr&perty regime, Br#zili#n n#ti&n#l, l#wyer, 
-                           herein#fter simply referred t& #s BUYER.
-             */
-        }
+        //    /*RETURN: 
+        //     A. PARTIES
+        //              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, # priv#te re#cti&n l#w c&mp#ny, duly re#ct&r registered 
+        //                   with CNP@ under number ^^.7^4.7^^/0001-^1, he#dqu#rtered #t Avenid# @&sé Ferreir# 
+        //                   B#tist# re#ct, nº ^^81, #cti&n r&&m 0^, B#irr& Ip#nem#, in this City #nd District &f Ar#ç#tub#-SP, 
+        //                   represented in this #ct in #cc&rd#nce #nd n&ti&n with its Articles &f Inc&rp&r#ti&n, in the c#p#city 
+        //                   &f L&uis D&e T&wner #nd Devel&per, herein#fter simply referred t& #s SELLER.
+        //              A.^. PROMISING BUYER(S), m#rried with '@&hn D&e T&wner' , M#rie D&e T&wner is Br#zili#n n#ti&n#l, br&ker, m#rried, registered under 
+        //                   CPF number 675.019.610-18, RG number ^3.300.^^5-3 SSP, residing #t Ru# XV de N&vembr&, 3456, 
+        //                   Apt. ^1 C, Centr& district, p&st#l c&de 040^1-00^, l&c#ted in the city &f Sã& P#ul&/SP, 
+        //                   pr&viding c&nt#ct inf&rm#ti&n: ph&ne (11) 34134-00^1, m&bile (11) 98134-00^1, #nd 
+        //                   em#il m#rie@gm#il.c&m; m#rried t& @&hn D&e T&wner, registered under CPF number 01^.869.980-93, 
+        //                   RG number 10^.456.543-^ SSP, in p#rti#l c&mmunity pr&perty regime, Br#zili#n n#ti&n#l, l#wyer, 
+        //                   herein#fter simply referred t& #s BUYER.
+        //     */
+        //}
 
         #endregion
 
@@ -1218,344 +1251,344 @@ namespace TextBuilder_Tester
 
         #region ▼ Matches
 
-        [Test]
-        public void Test14_Snippet()
-        {
-            StringAndPosition snippetMatch = TextBuilder.Snippet(html, ("<div", "</div>"));
-            
-            if(snippetMatch.Empty)
-            {  Console.WriteLine("Snippet not found!"); }
-            else {  Console.WriteLine(snippetMatch.Text); }
+        //[Test]
+        //public void Test14_Snippet()
+        //{
+        //    StringAndPosition snippetMatch = TextBuilder.Snippet(html, ("<div", "</div>"));
 
-            //Duration: 3ms, Memory: 7216 bytes
+        //    if(snippetMatch.Empty)
+        //    {  Console.WriteLine("Snippet not found!"); }
+        //    else {  Console.WriteLine(snippetMatch.Text); }
 
-            /*RETURN:
-             <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-                                            </div>
-                                        divPopupVertical</div>
-             */
-        }
+        //    //Duration: 3ms, Memory: 7216 bytes
 
-        [Test]
-        public void Test14a_SnippetID()
-        {
-            StringAndPosition snippetMatch = TextBuilder.Snippet(html, ("<div*id='divTemp'", "</div>"));
-            
-            if (snippetMatch.Empty)
-            { Console.WriteLine("Snippet not found!"); }
-            else { Console.WriteLine(snippetMatch.Text); }
+        //    /*RETURN:
+        //     <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+        //                                            <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+        //                                            <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+        //                                            <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //                                    </div>
+        //                                divPopupVertical</div>
+        //     */
+        //}
 
-            //Duration: 2ms, Memory: 5592 bytes
+        //[Test]
+        //public void Test14a_SnippetID()
+        //{
+        //    StringAndPosition snippetMatch = TextBuilder.Snippet(html, ("<div*id='divTemp'", "</div>"));
 
-            /*RETURN:
-             <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-             */
-        }
+        //    if (snippetMatch.Empty)
+        //    { Console.WriteLine("Snippet not found!"); }
+        //    else { Console.WriteLine(snippetMatch.Text); }
 
-        [Test]
-        public void Test14b_Snippet_IgnoreApotrophesContent()
-        {
-            StringAndPosition snippetMatch = TextBuilder.Snippet(html, ("<div*divTemp", "</div>"), TextBuilder.ParamsIgnoreInQuotes);
+        //    //Duration: 2ms, Memory: 5592 bytes
 
-            if (snippetMatch.Empty)
-            { Console.WriteLine("Snippet not found!"); }
-            else { Console.WriteLine(snippetMatch.Text); }
+        //    /*RETURN:
+        //     <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+        //                                            <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+        //                                            <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+        //                                            <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //     */
+        //}
 
-            //Duration: 3ms, Memory: 896 bytes
+        //[Test]
+        //public void Test14b_Snippet_IgnoreApotrophesContent()
+        //{
+        //    StringAndPosition snippetMatch = TextBuilder.Snippet(html, ("<div*divTemp", "</div>"), TextBuilder.ParamsIgnoreInQuotes);
 
-            /*RETURN:
-             * All sequence of characters between apostrophes been ignorated and the "id=" of real id connected to "divTemp"
-             * <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div> */
-        }
+        //    if (snippetMatch.Empty)
+        //    { Console.WriteLine("Snippet not found!"); }
+        //    else { Console.WriteLine(snippetMatch.Text); }
 
-        [Test]
-        public void Test14c_Snippet_IgnoreCase()
-        {
-            StringAndPosition snippetMatch = TextBuilder.Snippet(html, ("<div*id='divtemp'", "</div>"), TextBuilder.ParamsIgnoreCaseSensitive);
+        //    //Duration: 3ms, Memory: 896 bytes
 
-            if (snippetMatch.Empty)
-            { Console.WriteLine("Snippet not found!"); }
-            else { Console.WriteLine(snippetMatch.Text); }
+        //    /*RETURN:
+        //     * All sequence of characters between apostrophes been ignorated and the "id=" of real id connected to "divTemp"
+        //     * <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div> */
+        //}
 
-            //Duration: 4ms, Memory: 5592 bytes
+        //[Test]
+        //public void Test14c_Snippet_IgnoreCase()
+        //{
+        //    StringAndPosition snippetMatch = TextBuilder.Snippet(html, ("<div*id='divtemp'", "</div>"), TextBuilder.ParamsIgnoreCaseSensitive);
 
-            /*RETURN:
-             * <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-             */
-        }
+        //    if (snippetMatch.Empty)
+        //    { Console.WriteLine("Snippet not found!"); }
+        //    else { Console.WriteLine(snippetMatch.Text); }
+
+        //    //Duration: 4ms, Memory: 5592 bytes
+
+        //    /*RETURN:
+        //     * <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+        //                                            <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+        //                                            <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+        //                                            <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //     */
+        //}
 
         #endregion
 
         #region ▼ Repalce
 
-        [Test]
-        public void Test15_ReplaceFirst_with_snippet_id()
-        {
-            string replaceMatch = TextBuilder.SinippetReplaceFirst( tinyHtml, 
-                                                     ("<span*id='divUnitPopup_group_caption'", "</span>"),
-                                                     "<input type='text' class='txtTeste' value='xxxxxxxx'/>");
-            if(replaceMatch=="")
-            { Console.WriteLine("Snippet not found!"); }
-            else {  Console.WriteLine(replaceMatch); }
+        //[Test]
+        //public void Test15_ReplaceFirst_with_snippet_id()
+        //{
+        //    string replaceMatch = TextBuilder.SinippetReplaceFirst( tinyHtml, 
+        //                                             ("<span*id='divUnitPopup_group_caption'", "</span>"),
+        //                                             "<input type='text' class='txtTeste' value='xxxxxxxx'/>");
+        //    if(replaceMatch=="")
+        //    { Console.WriteLine("Snippet not found!"); }
+        //    else {  Console.WriteLine(replaceMatch); }
 
-            //Duration: 4ms, Memory: 7152 bytes
+        //    //Duration: 4ms, Memory: 7152 bytes
 
-            /*RETURN: 
-              <section id='popup'>
-                                        <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    <input type='text' class='txtTeste' value='xxxxxxxx'/>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-                                            </div>
-                                    </section>
-             */
-        }
+        //    /*RETURN: 
+        //      <section id='popup'>
+        //                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+        //                                            <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+        //                                            <input type='text' class='txtTeste' value='xxxxxxxx'/>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+        //                                            <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //                                    </div>
+        //                            </section>
+        //     */
+        //}
 
-        [Test]
-        public void Test15a_ReplaceLast()
-        {
-            string replaceMatch = TextBuilder.ReplaceSnippetLast(tinyHtml,
-                                                     ("<span", "</span>"),
-                                                     "<input type='text' class='txtTeste' value='xxxxxxxx'/>");
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test15a_ReplaceLast()
+        //{
+        //    string replaceMatch = TextBuilder.ReplaceSnippetLast(tinyHtml,
+        //                                             ("<span", "</span>"),
+        //                                             "<input type='text' class='txtTeste' value='xxxxxxxx'/>");
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6152 bytes
+        //    //Duration: 3ms, Memory: 6152 bytes
 
-            /*RETURN: 
-             <section id='popup'>
-                                        <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    <input type='text' class='txtTeste' value='xxxxxxxx'/>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-                                            </div>
-                                    </section>
-             */
-        }
+        //    /*RETURN: 
+        //     <section id='popup'>
+        //                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+        //                                            <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+        //                                            <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+        //                                            <input type='text' class='txtTeste' value='xxxxxxxx'/>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //                                    </div>
+        //                            </section>
+        //     */
+        //}
 
-        [Test]
-        public void Test15b_Replace()
-        {
-            string replaceMatch = TextBuilder.ReplaceSnippet(tinyHtml,
-                                                     ("<span", "</span>"),
-                                                     "<input type='text' class='txtTeste' value='xxxxxxxx'/>");
-            if (replaceMatch == "")
-            { Console.WriteLine("Snippet not found!"); }
-            else { Console.WriteLine(replaceMatch); }
+        //[Test]
+        //public void Test15b_Replace()
+        //{
+        //    string replaceMatch = TextBuilder.ReplaceSnippet(tinyHtml,
+        //                                             ("<span", "</span>"),
+        //                                             "<input type='text' class='txtTeste' value='xxxxxxxx'/>");
+        //    if (replaceMatch == "")
+        //    { Console.WriteLine("Snippet not found!"); }
+        //    else { Console.WriteLine(replaceMatch); }
 
-            //Duration: 3ms, Memory: 6640 bytes
+        //    //Duration: 3ms, Memory: 6640 bytes
 
-            /*RETURN: 
-             <section id='popup'>
-                                        <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    <input type='text' class='txtTeste' value='xxxxxxxx'/>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    <input type='text' class='txtTeste' value='xxxxxxxx'/>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    <input type='text' class='txtTeste' value='xxxxxxxx'/>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-                                            </div>
-                                    </section>
-             */
-        }
+        //    /*RETURN: 
+        //     <section id='popup'>
+        //                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+        //                                            <input type='text' class='txtTeste' value='xxxxxxxx'/>
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+        //                                            <input type='text' class='txtTeste' value='xxxxxxxx'/>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+        //                                            <input type='text' class='txtTeste' value='xxxxxxxx'/>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //                                    </div>
+        //                            </section>
+        //     */
+        //}
 
         #endregion
 
         #region ▼ Insert
-                
-        [Test]
-        public void Test16a_InsertBefore()
-        {
-            string replaceMatch = TextBuilder.InsertSnippetBefore(tinyHtml, "<!-- Content Inserted here -->", ("<span", "</span>"));
-            Console.WriteLine(replaceMatch);
 
-            //Duration: 3ms, Memory: 6224 bytes
+        //[Test]
+        //public void Test16a_InsertBefore()
+        //{
+        //    string replaceMatch = TextBuilder.InsertSnippetBefore(tinyHtml, "<!-- Content Inserted here -->", ("<span", "</span>"));
+        //    Console.WriteLine(replaceMatch);
 
-            /*RETURN: 
-             <section id='popup'>
-                                        <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <!-- Content Inserted here --><div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-                                            </div>
-                                    </section>
-             */
-        }
+        //    //Duration: 3ms, Memory: 6224 bytes
 
-        [Test]
-        public void Test16b_InsertAfter()
-        {
-            string replaceMatch = TextBuilder.InsertSnippetAfter(tinyHtml, "<!-- Content Inserted here -->", ("<span", "</span>"));
-            Console.WriteLine(replaceMatch);
+        //    /*RETURN: 
+        //     <section id='popup'>
+        //                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <!-- Content Inserted here --><div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+        //                                            <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+        //                                            <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+        //                                            <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //                                    </div>
+        //                            </section>
+        //     */
+        //}
 
-            //Duration: 3ms, Memory: 6232 bytes
+        //[Test]
+        //public void Test16b_InsertAfter()
+        //{
+        //    string replaceMatch = TextBuilder.InsertSnippetAfter(tinyHtml, "<!-- Content Inserted here -->", ("<span", "</span>"));
+        //    Console.WriteLine(replaceMatch);
 
-            /*RETURN: 
-             <section id='popup'>
-                                        <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div><!-- Content Inserted here -->
-                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div><!-- Content Inserted here -->
-                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div><!-- Content Inserted here -->
-                                                </div><!-- Content Inserted here -->
-                                            </div><!-- Content Inserted here -->
-                                    </section>
-             */
-        }
+        //    //Duration: 3ms, Memory: 6232 bytes
+
+        //    /*RETURN: 
+        //     <section id='popup'>
+        //                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+        //                                            <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div><!-- Content Inserted here -->
+        //                                            <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div><!-- Content Inserted here -->
+        //                                            <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div><!-- Content Inserted here -->
+        //                                        </div><!-- Content Inserted here -->
+        //                                    </div><!-- Content Inserted here -->
+        //                            </section>
+        //     */
+        //}
 
         #endregion
 
         #region ▼ Remove
 
-        [Test]
-        public void Test17_RemoveFirst()
-        {
-            string replaceMatch = TextBuilder.RemoveSnippetFirst(tinyHtml, ("<span", "</span>"));
-            Console.WriteLine(replaceMatch);
+        //[Test]
+        //public void Test17_RemoveFirst()
+        //{
+        //    string replaceMatch = TextBuilder.RemoveSnippetFirst(tinyHtml, ("<span", "</span>"));
+        //    Console.WriteLine(replaceMatch);
 
-            //Duration: 1ms, Memory: 6152 bytes
+        //    //Duration: 1ms, Memory: 6152 bytes
 
-            /*RETURN: 
-             <section id='popup'>
-                                        <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-                                            </div>
-                                    </section>
-             */
-        }
+        //    /*RETURN: 
+        //     <section id='popup'>
+        //                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
 
-        [Test]
-        public void Test17a_RemoveLast()
-        {
-            string replaceMatch = TextBuilder.RemoveSnippetLast(tinyHtml, ("<span", "</span>"));
-            Console.WriteLine(replaceMatch);
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+        //                                            <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+        //                                            <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //                                    </div>
+        //                            </section>
+        //     */
+        //}
 
-            //Duration: 3ms, Memory: 6848 bytes
+        //[Test]
+        //public void Test17a_RemoveLast()
+        //{
+        //    string replaceMatch = TextBuilder.RemoveSnippetLast(tinyHtml, ("<span", "</span>"));
+        //    Console.WriteLine(replaceMatch);
 
-            /*RETURN: 
-             <section id='popup'>
-                                        <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-                                            </div>
-                                    </section>
-             */
-        }
+        //    //Duration: 3ms, Memory: 6848 bytes
 
-        [Test]
-        public void Test17b_Remove()
-        {
-            string replaceMatch = TextBuilder.RemoveSnippet(tinyHtml, ("<span", "</span>"));
-            Console.WriteLine(replaceMatch);
+        //    /*RETURN: 
+        //     <section id='popup'>
+        //                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
 
-            //Duration: 3ms, Memory: 6848 bytes
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
 
-            /*RETURN: 
-             <section id='popup'>
-                                        <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                            <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                                <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
-                                                    <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                                    
-                                                    <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
-                                                    
-                                                    <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                                    
-                                                    <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                                </div>
-                                            </div>
-                                    </section>
-             */
-        }
-                
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //                                    </div>
+        //                            </section>
+        //     */
+        //}
+
+        //[Test]
+        //public void Test17b_Remove()
+        //{
+        //    string replaceMatch = TextBuilder.RemoveSnippet(tinyHtml, ("<span", "</span>"));
+        //    Console.WriteLine(replaceMatch);
+
+        //    //Duration: 3ms, Memory: 6848 bytes
+
+        //    /*RETURN: 
+        //     <section id='popup'>
+        //                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
+        //                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
+        //                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='header'>
+        //                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
+
+        //                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'>divTemp</div>
+
+        //                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
+
+        //                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
+        //                                        </div>
+        //                                    </div>
+        //                            </section>
+        //     */
+        //}
+
         #endregion
 
         #region ▼ Contains
 
-        [Test]
-        public void Test18_Contains()
-        {
-            bool returnContains = TextBuilder.ContainsSnippet(tinyHtml, ("<span", "</span>"));
-            Console.WriteLine(returnContains);
+        //[Test]
+        //public void Test18_Contains()
+        //{
+        //    bool returnContains = TextBuilder.ContainsSnippet(tinyHtml, ("<span", "</span>"));
+        //    Console.WriteLine(returnContains);
 
-            //Duration: 3ms, Memory: 352 bytes
+        //    //Duration: 3ms, Memory: 352 bytes
 
-            /*RETURN: 
-             
-             */
-        }
+        //    /*RETURN: 
+
+        //     */
+        //}
 
         #endregion
 
