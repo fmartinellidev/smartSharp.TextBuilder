@@ -53,16 +53,6 @@ Inspirado no padrão **MVC**, adaptado para operações de texto:
 | TextBuilder       | 251.8 ns    | 120 B   |
 | Regex             | 764.6 ns    | 416 B   |
 
-Perfeito, Fernando! Aqui está a tabela dos parâmetros que você mencionou, formatada para inclusão direta no `README.md` em Markdown:
-
----
-
-Claro, Fernando! Aqui está a tabela dos parâmetros do `TextOpt` sem a coluna de valor, formatada para inclusão direta no `README.md` em Markdown:
-
----
-
-Perfeito, Fernando! Aqui está a seção expandida para o `README.md`, agora incluindo exemplos práticos com os parâmetros de configuração `TextOpt` aplicados nas diferentes formas de uso do TextBuilder:
-
 ---
 
 ## 🧬 Opções de Sintaxe
