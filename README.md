@@ -226,6 +226,47 @@ TextBuilder.ContSnippets(html, "<div*divUnitPopup_group", "/div>"); // 1
 TextBuilder.ContSnippets(html, "<span", "/span>"); // 3
 ```
 
+Excelente observação, Fernando! Esse comportamento é um dos diferenciais mais inteligentes do TextBuilder, e merece destaque na documentação. Aqui está a seção que você pode adicionar ao `README.md` para explicar isso com clareza:
+
+---
+
+## 🧠 Reconhecimento Inteligente de Tags de Abertura (`Snippet`)
+
+O método `Snippet` do TextBuilder possui um mecanismo avançado de reconhecimento de **tags de abertura**, mesmo quando o padrão de busca contém curingas (`*`) ou atributos adicionais.
+
+### 🔍 Como funciona
+
+Ao buscar um trecho com padrão como:
+
+```csharp
+TextBuilder.Snippet(html, "<div*id='divTest'", "</div>");
+```
+
+O TextBuilder realiza os seguintes passos:
+
+1. **Identifica a primeira ocorrência** que corresponde ao padrão com curinga (`<div*id='divTest'`).
+2. **Remove o curinga e o conteúdo após ele**, passando a considerar apenas `"<div"` como a **tag de abertura principal**.
+3. A partir disso, ele reconhece corretamente:
+   - A **hierarquia de trechos filhos** contidos dentro da tag principal.
+   - O **fechamento correto** com `</div>`, mesmo em estruturas aninhadas.
+
+### ✅ Benefícios
+
+- Permite buscar trechos complexos com atributos sem quebrar a estrutura.
+- Garante que o trecho retornado seja **completo e bem formado**, mesmo com múltiplos níveis de aninhamento.
+- Evita erros comuns de Regex, como capturas incompletas ou quebras de DOM.
+
+### 📌 Exemplo prático
+
+```csharp
+StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div*id='divTemp'", "</div>");
+Console.WriteLine(snippetMatch.Text);
+```
+
+**Resultado**: Retorna o bloco completo `<div id='divTemp'>...</div>`, incluindo todos os elementos filhos corretamente.
+
+---
+
 ## 📌 Conclusão
 
 O **TextBuilder** entrega uma solução robusta, leve e escalável para manipulação textual em C#.  
