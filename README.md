@@ -61,6 +61,59 @@ Claro, Fernando! Aqui está a tabela dos parâmetros do `TextOpt` sem a coluna d
 
 ---
 
+Perfeito, Fernando! Aqui está a seção expandida para o `README.md`, agora incluindo exemplos práticos com os parâmetros de configuração `TextOpt` aplicados nas diferentes formas de uso do TextBuilder:
+
+---
+
+## 🧬 Opções de Sintaxe
+
+O TextBuilder oferece múltiplas formas de uso, adaptando-se ao estilo e à necessidade de cada desenvolvedor:
+
+### 🔹 Instância direta do `TextMatcher`
+
+```csharp
+TextMatcher builder = new TextMatcher(text);
+builder.CaseSensitive = false;
+builder.EnableIgnoreCharsInQuotes();
+StringAndPosition firstMatch = builder.Match("john doe|marie doe");
+```
+
+---
+
+### 🔹 Bloco `IDisposable` com configuração interna
+
+```csharp
+StringAndPosition firstMatch;
+using (var builder = new TextMatcher(text))
+{
+    builder.DisableCaseSensitive();
+    builder.EnableIgnoreCharsInQuotes();
+    builder.EnableIgnoreCharsInDoubleQuotes();
+    firstMatch = builder.Match("John Doe|Marie Doe");
+}
+```
+
+---
+
+### 🔹 Instância inline com propriedades configuradas
+
+```csharp
+StringAndPosition firstMatch = new TextMatcher(text)
+{
+    CaseSensitive = false
+}.Match("john doe|marie doe");
+```
+
+---
+
+### 🔹 Uso direto via classe estática `TextBuilder`
+
+```csharp
+StringAndPosition firstMatch = TextBuilder.Match(text, "Marie Doe|Jane Doe|Jack|John Doe", TextOpt.MatchWholeWordOnly);
+```
+
+---
+
 ## ⚙️ Parâmetros de Configuração (`TextOpt`)
 
 Estes parâmetros podem ser usados para configurar o comportamento das buscas e operações do TextBuilder:
@@ -73,6 +126,10 @@ Estes parâmetros podem ser usados para configurar o comportamento das buscas e 
 | `IgnoreDynamicChars`           | Identifica e ignora caracteres dinâmicos no padrão e no texto             |
 | `MatchGreedyOccurences`        | Não força busca pela ocorrência mais curta; permite busca gulosa         |
 | `MatchWholeWordOnly`           | Retorna apenas ocorrências que sejam palavras inteiras                    |
+
+---
+
+Esses exemplos mostram como o TextBuilder pode ser adaptado para diferentes cenários — desde buscas simples até parsing avançado com múltiplas regras.
 
 ---
 
