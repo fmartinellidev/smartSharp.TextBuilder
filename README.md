@@ -57,23 +57,24 @@ Perfeito, Fernando! Aqui está a tabela dos parâmetros que você mencionou, for
 
 ---
 
+Claro, Fernando! Aqui está a tabela dos parâmetros do `TextOpt` sem a coluna de valor, formatada para inclusão direta no `README.md` em Markdown:
+
+---
+
 ## ⚙️ Parâmetros de Configuração (`TextOpt`)
 
 Estes parâmetros podem ser usados para configurar o comportamento das buscas e operações do TextBuilder:
 
-| Parâmetro                  | Valor | Descrição                                                                 |
-|---------------------------|:-----:|---------------------------------------------------------------------------|
-| `CaseSensitive`           | `1`   | Considera diferenciação entre maiúsculas e minúsculas                     |
-| `IgnoreCharsInQuotes`     | `2`   | Ignora conteúdo entre aspas simples (`'...'`) durante o parsing           |
-| `IgnoreCharsInDoubleQuotes`| `3`  | Ignora conteúdo entre aspas duplas (`"..."`) durante o parsing            |
-| `IgnoreDynamicChars`      | `4`   | Identifica e ignora caracteres dinâmicos no padrão e no texto             |
-| `MatchGreedyOccurences`   | `5`   | Não força busca pela ocorrência mais curta; permite busca gulosa         |
-| `MatchWholeWordOnly`      | `6`   | Retorna apenas ocorrências que sejam palavras inteiras                    |
+| Parâmetro                        | Descrição                                                                 |
+|----------------------------------|---------------------------------------------------------------------------|
+| `CaseSensitive`                 | Considera diferenciação entre maiúsculas e minúsculas                     |
+| `IgnoreCharsInQuotes`          | Ignora conteúdo entre aspas simples (`'...'`) durante o parsing           |
+| `IgnoreCharsInDoubleQuotes`    | Ignora conteúdo entre aspas duplas (`"..."`) durante o parsing            |
+| `IgnoreDynamicChars`           | Identifica e ignora caracteres dinâmicos no padrão e no texto             |
+| `MatchGreedyOccurences`        | Não força busca pela ocorrência mais curta; permite busca gulosa         |
+| `MatchWholeWordOnly`           | Retorna apenas ocorrências que sejam palavras inteiras                    |
 
 ---
-
-Se quiser, posso também incluir exemplos de uso com esses parâmetros aplicados em métodos como `Match`, `Cont`, `Translate`, etc. É só pedir!
-
 
 ## 🧪 Exemplos de Uso
 
