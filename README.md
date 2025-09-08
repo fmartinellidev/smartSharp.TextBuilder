@@ -139,7 +139,9 @@ TextBuilder.Match("email*@hotmail.com|@gmail.com|@yahoo.com");
 ```csharp
 TextBuilder.Insert(text, "the client ", 75);
 TextBuilder.InsertBeforeFirst(text, "the client ", "Marie");
+TextBuilder.InsertBefore(text, "<o>", ",");
 TextBuilder.InsertAfter(text, "<o>", ",");
+TextBuilder.InsertAfterFirst(text, "the client ", "Marie");
 ```
 
 ### 🧹 Remoção
