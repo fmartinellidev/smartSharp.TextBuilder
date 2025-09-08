@@ -109,7 +109,7 @@ TextBuilder.Cont(text, "r*act"); // 4
 TextBuilder.Cont(text, "r*act", TextOpt.MatchWholeWordOnly); // 3
 ```
 
-## 🧱 Snippets HTML
+## 🧱 Snippets in Text
 
 ### 🔍 Match de Blocos
 
