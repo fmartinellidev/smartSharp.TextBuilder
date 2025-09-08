@@ -1,6 +1,6 @@
-# 🧠 TextBuilder — Manipulação de Texto de Alta Performance em C#
+# TextBuilder — Manipulação de Texto de Alta Performance em C#
 
-## ✨ Visão Geral
+## Visão Geral
 
 O **TextBuilder** é uma biblioteca desenvolvida em **C# 13** sobre o ambiente **.NET 9**, voltada para **busca, edição e análise de texto** com foco em **alta performance**, **baixo consumo de memória** e **API intuitiva**.  
 Seu diferencial está na capacidade de realizar operações complexas — como busca com curingas, substituições posicionais, manipulação de snippets HTML — sem depender de bibliotecas externas.
@@ -13,7 +13,7 @@ Seu diferencial está na capacidade de realizar operações complexas — como b
 - ✅ Escalabilidade nativa  
 - ✅ Sem conflitos com pacotes de terceiros  
 
-## 🧱 Arquitetura Interna
+## Arquitetura Interna
 
 Inspirado no padrão **MVC**, adaptado para operações de texto:
 
