@@ -49,6 +49,7 @@ public class ComparadorDeDesempenho
                        <div id='divValorFinal' style='width:32px; top:44px; left:84px;' class='divPlantHorizontalLine'></div>
                    </div>
                 </section>";
+
         text = @"PRIVATE INSTRUMENT OF PROMISE OF PURCHASE AND SALE OF PROPERTY
                       
                       SUBJECT OF SUBDIVISION
@@ -109,32 +110,57 @@ public class ComparadorDeDesempenho
     {
         #region + Simple match with OR
 
-        TextBuilder builder = new TextBuilder(text);
-        StringAndPosition result = builder.Match("Marie Doe||Jane Doe||Jack||John Doe"); // Método estático
-        
+        //TextMatcher builder = new TextMatcher(text);
+        //StringAndPosition result = builder.Match("Marie Doe|Jane Doe|Jack|John Doe");
+
         #endregion
 
         #region + Match with ignore apostrophes
 
-        //StringAndPosition result = TextBuilder.Match(text, "Marie Doe||Jane Doe||Jack||John Doe", TextBuilder.ParamsIgnoreInQuotes); // Método estático
-        //if (result.Empty)
-        //    return "Match not found!";
+        //TextMatcher builder = new TextMatcher(text);
+        //builder.IgnoreCharsInQuotes = true;
+        //StringAndPosition result = builder.Match("Marie Doe|Jane Doe|Jack|John Doe"); // Método estático
 
         #endregion
 
         #region + Simple match ignoreCase
 
-        //StringAndPosition result = TextBuilder.Match(text, "Marie Doe||Jane Doe||Jack||John Doe", TextBuilder.ParamsIgnoreCaseSensitive); // Método estático
+        //TextMatcher builder = new TextMatcher(text);
+        //builder.CaseSensitive = false;
+        //StringAndPosition result = TextBuilder.Match(text, "Marie Doe|Jane Doe|Jack|John Doe"); // Método estático
 
         #endregion
 
         #region + Wildcard match
 
-        //StringAndPosition result = TextBuilder.Match(text, @"*residential");
+        //TextMatcher builder = new TextMatcher(text);
+        //StringAndPosition result = TextBuilder.Match(text, "*residential");
+
+        //StringAndPosition result = TextBuilder.Match(text, "J*ner");
+
+        //StringAndPosition result = TextBuilder.Match(text, "B.3.*");
+
+        //StringAndPosition result = TextBuilder.Match(text, "Name:*cidade de *.");
+
+        //StringAndPosition result = TextBuilder.Match(text, "email*@hotmail.com|@gmail.com|@yahoo.com");
+
+        //StringAndPosition result = TextBuilder.Match(text,"married*Marie|John|Jack* Mcan| Albert| Towner");
+
+        //StringAndPosition result = TextBuilder.Match(text,"_react");
+
+        //string result = TextBuilder.ReplaceFirst(text, "Marie Doe Towner", "Jene Doe Sanders");
+
+        //string result = TextBuilder.ReplaceFirst(text, "Marie*Towner", "Jene Doe Sanders");
+
+        string result = TextBuilder.Translate(text, "Doe;married;,", "Silva;Divorced;<o>");
 
         #endregion
 
-        if (result.Empty)
+        //if (result.Empty)
+        //    return false;
+        //return true;
+
+        if (result =="")
             return false;
         return true;
     }
@@ -143,12 +169,12 @@ public class ComparadorDeDesempenho
     public bool UsandoRegex()
     {
         #region + Simple match with OR
-        return Regex.Match(text, "Marie Doe|Jane Doe|Jack|John Doe").Success;
+        //return Regex.Match(text, "Marie Doe|Jane Doe|Jack|John Doe").Success;
         #endregion
 
         #region + Match with ignore apostrophes
 
-        //return Regex.Match(text, @"'[^']*'|(?<!')\bMarie Doe|Jane Doe|Jack|John Doe\b(?!')").Value;
+        //return Regex.Match(text, @"'[^']*'|(?<!')\bMarie Doe|Jane Doe|Jack|John Doe\b(?!')").Success;
 
         #endregion
 
@@ -160,7 +186,28 @@ public class ComparadorDeDesempenho
 
         #region + Match pattern
 
-        //return Regex.Match(text, "(.*?)residential").Success;
+        //string test = Regex.Match(text, "(.*?)residential").Value;
+
+        //string test = Regex.Match(text, "j(.*?)ner").Value;
+
+        //string test = Regex.Match(text, @"B\.3\.(.*?)").Value;
+
+        //string test = Regex.Match(text, @"Name:(.*?)cidade de (.*?)\.").Value;
+
+        //string test = Regex.Match(text, @"email(.*?)(@hotmail.com|@gmail.com|@yahoo.com)").Value;
+
+        //string test = Regex.Match(text, @"married(.*?)(Marie|John|(Jack(.*?)Mcan)| Albert| Towner)").Value;
+
+        //string test = Regex.Match(text, @"(\s)react").Value;
+
+        //string test = Regex.Replace(text, @"Marie Doe Towner", "Jene Doe Sanders");
+
+        //string test = Regex.Replace(text, @"Marie(.*?)Towner", "Jene Doe Sanders");
+
+        string test = Regex.Replace(text, @"Doe|married|,", "Silva");
+
+        if (test == null) { return false; }
+        return true;
 
         #endregion
 
