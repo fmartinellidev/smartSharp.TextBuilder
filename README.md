@@ -96,7 +96,7 @@ O TextBuilder oferece suporte a **caracteres especiais** que ampliam a flexibili
 | Caractere | Função                                                                 | Exemplo de Uso                                      | Resultado Esperado                                  |
 |-----------|------------------------------------------------------------------------|-----------------------------------------------------|-----------------------------------------------------|
 | `_`       | Representa **separadores de palavras** como espaço, pontuação e quebras | `"John_Doe"` pode retornar com `"John Doe"` ou `"John, Doe"` | Reconhece variações com separadores flexíveis       |
-| `#`       | Representa **qualquer número completo**, com todos os seus dígitos, pontos e vírgulas.      | `"U$# in cash"` e `"#/#-#"`            | Pode retornar com `"U$1.100,32 in cash"` e `"22.724.722/0001-21"`                 |
+| `#`       | Representa **qualquer número completo**, com todos os seus dígitos, pontos e vírgulas.      | `"U$# in cash"` e `"#/#-#"`            | Pode retornar `"U$1.100,32 in cash"` e `"22.724.722/0001-21"`                 |
 | `~`       | Realiza **completamento de palavras** com base em prefixo/sufixo        | `"~act"` → `"react"`<br>`"act~"` → `"action"`<br>`"~act~"` → `"reaction"` | Reconhece palavras completas a partir de fragmentos |
 
 ---
