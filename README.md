@@ -110,8 +110,6 @@ Estes parâmetros podem ser usados para configurar o comportamento das buscas e 
 
 O TextBuilder oferece suporte a **caracteres especiais** que ampliam a flexibilidade das buscas, permitindo reconhecer variações, padrões incompletos e estruturas numéricas com precisão.
 
-### 🔣 Tabela de Caracteres Dinâmicos
-
 | Caractere | Função                                                                 | Exemplo de Uso                                      | Resultado Esperado                                  |
 |-----------|------------------------------------------------------------------------|-----------------------------------------------------|-----------------------------------------------------|
 | `_`       | Representa **separadores de palavras** como espaço, pontuação e quebras | `"John_Doe"` pode retornar com `"John Doe"` ou `"John, Doe"` | Reconhece variações com separadores flexíveis       |
@@ -120,7 +118,7 @@ O TextBuilder oferece suporte a **caracteres especiais** que ampliam a flexibili
 
 ---
 
-### 🧠 Como funciona internamente
+### Como funciona internamente
 
 - O caractere `_` é interpretado como qualquer um dos seguintes separadores:  
   `' '`, `'!'`, `'?'`, `'.'`, `';'`, `':'`, `','`, `'|'`, `'('`, `')'`, `'['`, `']'`, `'{'`, `'}'`, `'\n'`, `'\t'`, `'\r'`
@@ -132,7 +130,7 @@ O TextBuilder oferece suporte a **caracteres especiais** que ampliam a flexibili
 
 ---
 
-### 📌 Aplicações práticas
+### Aplicações práticas
 
 - Busca por nomes com variações de separadores: `"John_Doe"` → `"John Doe"`, `"John-Doe"`, `"John, Doe"`
 - Busca por valores numéricos: `"Total: $#"` → `"Total: $1.250,00"`
@@ -142,7 +140,7 @@ Essa funcionalidade coloca o TextBuilder em um patamar acima das expressões reg
 
 ---
 
-## 🧪 Exemplos de Uso
+## Exemplos de Uso
 
 Esses exemplos mostram como o TextBuilder pode ser adaptado para diferentes cenários desde buscas simples até parsing avançado com múltiplas regras.
 
@@ -172,13 +170,6 @@ TextBuilder.InsertBefore(text, "<o>", ",");
 TextBuilder.InsertAfter(text, "<o>", ",");
 TextBuilder.InsertAfterFirst(text, "the client ", "Marie");
 ```
-
-### 📌 Observações Técnicas
-
-- Todos os métodos têm tempo médio de execução de **1ms** e alocação de memória de aproximadamente **6.216 bytes**.
-- Suporte a padrões com curingas (`*`) e múltiplas ocorrências.
-- Preservam a integridade do texto original, realizando inserções precisas.
-
 ---
 
 ### 🧹 Remoção de Palavras
@@ -192,13 +183,6 @@ TextBuilder.InsertAfterFirst(text, "the client ", "Marie");
 TextBuilder.RemoveFirst(text, "Marie Doe Towner ");
 TextBuilder.Remove(text, ",");
 ```
-### 📌 Observações Técnicas
-
-- Ideal para limpeza de conteúdo, sanitização de dados ou refatoração textual.
-- Preserva a estrutura do texto original, removendo apenas o que for necessário.
-- Tempo médio de execução: **1ms**  
-- Memória alocada: **~6.216 bytes**
-
 ---
 
 ### 🔁 Substituição de Palavras ('Replace')
@@ -212,14 +196,6 @@ TextBuilder.Remove(text, ",");
 TextBuilder.ReplaceFirst(text, "Marie Doe Towner", "Jene Doe Sanders");
 TextBuilder.Replace(text, ",", "<o>");
 ```
-
-### 📌 Observações Técnicas
-
-- Ideal para refatoração textual, ajustes de nomenclatura ou padronização de conteúdo.
-- Preserva a estrutura do texto original, substituindo com precisão.
-- Tempo médio de execução: **1ms**  
-- Memória alocada: **~6.216 bytes**
-
 ---
 
 ### 🔄 Tradução Posicional (`Translate`)
@@ -233,15 +209,6 @@ TextBuilder.Replace(text, ",", "<o>");
 TextBuilder.TranslateFirst(text, "Doe;married;,", "Silva;Divorced;<o>");
 TextBuilder.Translate(text, "Doe;married;,", "Silva;Divorced;<o>");
 ```
-
-### 📌 Observações Técnicas
-
-- Os parâmetros `from` e `to` devem conter os termos separados por `;` na mesma ordem.
-- Ideal para mapeamentos múltiplos, como nomes, status, símbolos ou marcações.
-- Tempo médio de execução: **1ms**  
-- Memória alocada: **~6.216 bytes**
-- Preserva a estrutura do texto original, realizando substituições com precisão posicional.
-
 ---
 
 ### 🔎 Verificação
@@ -259,6 +226,12 @@ TextBuilder.Cont(text, "act"); // 6
 TextBuilder.Cont(text, "r*act"); // 4
 TextBuilder.Cont(text, "r*act", TextOpt.MatchWholeWordOnly); // 3
 ```
+
+### 📌 Observações Técnicas
+
+- Todos os métodos têm tempo médio de execução de **1ms** e alocação de memória de aproximadamente **6.216 bytes**.
+- Suporte a padrões com curingas (`*`) e múltiplas ocorrências.
+- Preservam a integridade do texto original, realizando inserções precisas.
 
 ## 🧱 Trechos no Texto ('Snippet') - Manipulação de Snippets
 
@@ -317,11 +290,11 @@ TextBuilder.ContainsSnippet(html, "<article", "/article>"); // False
 TextBuilder.ContSnippets(html, "<div*divUnitPopup_group", "/div>"); // 1
 TextBuilder.ContSnippets(html, "<span", "/span>"); // 3
 ```
-## 🧠 Reconhecimento Inteligente de Tags de Abertura (`Snippet`)
+## Reconhecimento Inteligente de Tags de Abertura (`Snippet`)
 
 O método `Snippet` do TextBuilder possui um mecanismo avançado de reconhecimento de **tags de abertura**, mesmo quando o padrão de busca contém curingas (`*`) ou atributos adicionais.
 
-### 🔍 Como funciona
+### Como funciona
 
 Ao buscar um trecho com padrão como:
 
@@ -337,14 +310,14 @@ O TextBuilder realiza os seguintes passos:
    - A **hierarquia de trechos filhos** contidos dentro da tag principal.
    - O **fechamento correto** com `</div>`, mesmo em estruturas aninhadas.
 
-### ✅ Benefícios
+### Benefícios
 
 - Permite buscar trechos complexos com atributos sem quebrar a estrutura.
 - Garante que o trecho retornado seja **completo e bem formado**, mesmo com múltiplos níveis de aninhamento.
 - Evita erros comuns de Regex, como capturas incompletas ou quebras de DOM.
 - Pode ser usado para busca de código de elementos no HTML, regras de estilo no CSS, identificar queries no SQL, registro de dados em Json e XML entre outras aplicações. 
 
-### 📌 Exemplo prático
+### Exemplo prático
 
 ```csharp
 StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div*id='divTemp'", "</div>");
@@ -357,35 +330,35 @@ Console.WriteLine(snippetMatch.Text);
 
 ## 🚀 Benchmark Comparativo
 
-### 🔍 Busca com OR
+### Busca com OR ('|')
 
 | Método            | Tempo Médio | Memória | GC Gen0 |
 |------------------|-------------|---------|---------|
 | TextBuilder       | 489.9 ns    | 40 B    | 0.0029  |
 | Regex             | 385.7 ns    | 208 B   | 0.0162  |
 
-### 🔡 Busca com IgnoreCase
+### Busca com parâmetro 'IgnoreCase'
 
 | Método            | Tempo Médio | Memória | GC Gen0 |
 |------------------|-------------|---------|---------|
 | TextBuilder       | 480.2 ns    | 40 B    | 0.0029  |
 | Regex             | 772.5 ns    | 208 B   | 0.0162  |
 
-### 🧩 Wildcard Match
+### Wildcard Match ('*')
 
 | Método            | Tempo Médio | Memória |
 |------------------|-------------|---------|
 | TextBuilder       | 253.3 ns    | 3.456 B |
 | Regex             | 1.473.463 ns| 248 B   |
 
-### 🔢 Padrões Compostos
+### Padrões Compostos - Wildcard e chars dinâmicos
 
 | Método            | Tempo Médio | Memória |
 |------------------|-------------|---------|
 | TextBuilder       | 251.8 ns    | 120 B   |
 | Regex             | 764.6 ns    | 416 B   |
 
-### 🔢 Necessidades de uso em loops (exemplo em loop de 10.000 iterações)
+### 🔁 Necessidades de uso em loops (exemplo em loop de 10.000 iterações)
 
 | Operação         | Regex (tempo médio) | TextBuilder (tempo médio) | Diferença de memória |
 |------------------|---------------------|----------------------------|----------------------|
@@ -393,7 +366,7 @@ Console.WriteLine(snippetMatch.Text);
 | `Replace`        | 1.5 ms              | 1.0 ms                     | TextBuilder evita buffers temporários |
 | `Contains`       | 1.1 ms              | 0.8 ms                     | TextBuilder não gera objetos descartáveis |
 
-### 🔁 Cenário: Busca repetitiva em grandes volumes de texto
+### Cenário: Busca repetitiva em grandes volumes de texto
 
 | Critério                     | Regex                                           | TextBuilder                                      |
 |------------------------------|--------------------------------------------------|--------------------------------------------------|
@@ -420,7 +393,7 @@ Console.WriteLine(snippetMatch.Text);
 
 ---
 
-## 📌 Conclusão
+# Conclusão
 
 O **TextBuilder** entrega uma solução robusta, leve e escalável para manipulação textual em C#.  
 Com benchmarks sólidos, API intuitiva e suporte a padrões avançados, ele se posiciona como uma alternativa moderna e segura ao uso de Regex em aplicações reais.
