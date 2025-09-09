@@ -130,7 +130,7 @@ namespace TextBuilder_Tester
                            for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.";
 
             tinyText = @"A. PARTIES
-                      A.1. SUBDIVISION LOTEAMENTO RESIDENCIAL BARCELONA LTDA, online a private reaction law company, duly reactor registered 
+                      A.1. SUBDIVISION LOTEAMENTO RESIDENCIAL BARCELONA LTDA, U$12.000,00 or down payment is 2.000, value online a private reaction law company, duly reactor registered 
                            with CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
                            Batista react, nº2281, action room 02, Ipanema neighborhood, in Bentonville City and District of Araçatuba-SP, 
                            represented in this act in accordance and notion with its Articles of Incorporation, in the capacity 
@@ -632,6 +632,38 @@ namespace TextBuilder_Tester
 
             //RETURN:
             /*22.724.722/0001-21*/
+        }
+
+        [Test]
+        public void Test05a_MatchDynamic_NumbersChar()
+        {
+            TextMatcher builder = new TextMatcher(tinyText);
+            StringAndPosition firstMatch = builder.Match("U$#");
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
+
+            //Duration: 2ms, Memory: 352 bytes
+
+            //RETURN:
+            /*U$12.000,00*/
+        }
+
+        [Test]
+        public void Test05b_MatchDynamic_NumbersChar()
+        {
+            TextMatcher builder = new TextMatcher(tinyText);
+            StringAndPosition firstMatch = builder.Match("is #");
+
+            if (firstMatch.Empty)
+            { Console.WriteLine("Match not found!"); }
+            else { Console.WriteLine(firstMatch.Text); }
+
+            //Duration: 2ms, Memory: 352 bytes
+
+            //RETURN:
+            /*is 2.000*/
         }
 
         [Test]

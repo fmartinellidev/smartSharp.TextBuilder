@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -86,7 +85,6 @@ namespace SmartSharp.TextBuilder
         /// Return occurences with only whole word.
         /// </summary>
         public static byte MatchWholeWordOnly = 6;
-
     }
     #endregion
 
@@ -1650,8 +1648,16 @@ namespace SmartSharp.TextBuilder
             for (; pos < text.Length; pos++)
             {
                 char c = text[pos];
-                if (c < '0' || c > '9')
+                if ((c < '0' || c > '9') && c != '.' && c != ',')
                 { pos--; break; }
+                else if (c == '.' || c == ',')
+                {
+                    if (pos < text.Length)
+                    {
+                        if (text[pos + 1] < '0' || text[pos + 1] > '9')
+                        { pos--; break; }
+                    }
+                }
 
                 occurLen++;
             }
