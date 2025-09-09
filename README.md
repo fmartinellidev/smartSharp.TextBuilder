@@ -3,7 +3,7 @@
 ## Visão Geral
 
 O **TextBuilder** é uma biblioteca desenvolvida em **C# 13** sobre o ambiente **.NET 9**, voltada para **busca, edição e análise de texto** com foco em **alta performance**, **baixo consumo de memória** e **API intuitiva**.  
-Seu diferencial está na capacidade de realizar operações complexas — como busca com curingas, substituições posicionais, manipulação de snippets HTML — sem depender de bibliotecas externas.
+Seu diferencial está na capacidade de realizar operações complexas como busca com curingas, substituições posicionais, manipulação de snippets HTML sem depender de bibliotecas externas.
 
 ## 📦 Dependências e Segurança
 
@@ -87,7 +87,7 @@ Estes parâmetros podem ser usados para configurar o comportamento das buscas e 
 
 ---
 
-## 🔍 Padrões Avançados de Busca — Caracteres Dinâmicos
+## 🔍 Padrões Avançados de Busca por Caracteres Dinâmicos
 
 O TextBuilder oferece suporte a **caracteres especiais** que ampliam a flexibilidade das buscas, permitindo reconhecer variações, padrões incompletos e estruturas numéricas com precisão.
 
@@ -125,7 +125,7 @@ Essa funcionalidade coloca o TextBuilder em um patamar acima das expressões reg
 
 ## 🧪 Exemplos de Uso
 
-Esses exemplos mostram como o TextBuilder pode ser adaptado para diferentes cenários — desde buscas simples até parsing avançado com múltiplas regras.
+Esses exemplos mostram como o TextBuilder pode ser adaptado para diferentes cenários desde buscas simples até parsing avançado com múltiplas regras.
 
 ### 🔍 Match
 
