@@ -336,39 +336,6 @@ Console.WriteLine(snippetMatch.Text);
 
 ---
 
-Perfeito, Fernando! Vamos montar um quadro visual e argumentativo para o artigo técnico, destacando como o **TextBuilder se comporta em loops**, comparado ao Regex. Isso vai reforçar seu domínio sobre performance, arquitetura e engenharia de baixo nível.
-
----
-
-## 📊 Comparativo em Loop — TextBuilder vs Regex
-
-### 🔁 Cenário: Busca repetitiva em grandes volumes de texto
-
-| Critério                     | Regex                                           | TextBuilder                                      |
-|------------------------------|--------------------------------------------------|--------------------------------------------------|
-| **Alocação por chamada**     | Heap — cria objetos e buffers a cada iteração   | Stack — usa `Span<char>` sem alocar no heap     |
-| **Pressão no GC**            | Crescente — coleta frequente de lixo            | Quase nula — sem objetos descartáveis           |
-| **Consumo de memória**       | Escala com o número de iterações                | Estável e previsível                            |
-| **Tempo por iteração**       | Pode variar com picos de latência               | Consistente e linear                            |
-| **Escalabilidade**           | Limitada em ambientes críticos                  | Ideal para sistemas concorrentes e embarcados   |
-| **Legibilidade e controle**  | Baixa — expressões complexas e opacas           | Alta — sintaxe clara e orientada a propósito    |
-
----
-
-### 🧠 Explicação Técnica
-
-- **Regex** depende de um engine que compila e interpreta expressões, criando estruturas auxiliares em cada chamada. Em loops, isso gera:
-  - Alocação constante no heap
-  - Picos de latência por coleta de lixo
-  - Dificuldade de profiling e tuning fino
-
-- **TextBuilder**, por outro lado:
-  - Usa `Span<char>` e `ref struct`, operando direto na stack
-  - Evita buffers, listas e strings temporárias
-  - Mantém o consumo de memória praticamente constante, mesmo em milhares de iterações
-
----
-
 ## 🚀 Benchmark Comparativo
 
 ### 🔍 Busca com OR
@@ -399,13 +366,38 @@ Perfeito, Fernando! Vamos montar um quadro visual e argumentativo para o artigo 
 | TextBuilder       | 251.8 ns    | 120 B   |
 | Regex             | 764.6 ns    | 416 B   |
 
-### 📌 Benchmark em necessidades de uso em loops (exemplo em loop de 10.000 iterações)
+### 🔢 Necessidades de uso em loops (exemplo em loop de 10.000 iterações)
 
 | Operação         | Regex (tempo médio) | TextBuilder (tempo médio) | Diferença de memória |
 |------------------|---------------------|----------------------------|----------------------|
 | `Match` simples  | 1.2 ms              | 0.9 ms                     | TextBuilder usa ~80% menos memória |
 | `Replace`        | 1.5 ms              | 1.0 ms                     | TextBuilder evita buffers temporários |
 | `Contains`       | 1.1 ms              | 0.8 ms                     | TextBuilder não gera objetos descartáveis |
+
+### 🔁 Cenário: Busca repetitiva em grandes volumes de texto
+
+| Critério                     | Regex                                           | TextBuilder                                      |
+|------------------------------|--------------------------------------------------|--------------------------------------------------|
+| **Alocação por chamada**     | Heap — cria objetos e buffers a cada iteração   | Stack — usa `Span<char>` sem alocar no heap     |
+| **Pressão no GC**            | Crescente — coleta frequente de lixo            | Quase nula — sem objetos descartáveis           |
+| **Consumo de memória**       | Escala com o número de iterações                | Estável e previsível                            |
+| **Tempo por iteração**       | Pode variar com picos de latência               | Consistente e linear                            |
+| **Escalabilidade**           | Limitada em ambientes críticos                  | Ideal para sistemas concorrentes e embarcados   |
+| **Legibilidade e controle**  | Baixa — expressões complexas e opacas           | Alta — sintaxe clara e orientada a propósito    |
+
+---
+
+### 🧠 Explicação Técnica
+
+- **Regex** depende de um engine que compila e interpreta expressões, criando estruturas auxiliares em cada chamada. Em loops, isso gera:
+  - Alocação constante no heap
+  - Picos de latência por coleta de lixo
+  - Dificuldade de profiling e tuning fino
+
+- **TextBuilder**, por outro lado:
+  - Usa `Span<char>` e `ref struct`, operando direto na stack
+  - Evita buffers, listas e strings temporárias
+  - Mantém o consumo de memória praticamente constante, mesmo em milhares de iterações
 
 ---
 
