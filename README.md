@@ -13,15 +13,15 @@ Its key differentiator is the ability to perform complex operations such as wild
 
 ## 📦 Dependencies & Safety
 
-- ✅ Zero external dependencies  
-- ✅ Uses only 4 native C# libraries  
-- ✅ Version-safe maintenance  
-- ✅ Native scalability  
-- ✅ No conflicts with third-party packages  
+- Zero external dependencies  
+- Uses only 4 native C# libraries  
+- Version-safe maintenance  
+- Native scalability  
+- No conflicts with third-party packages  
 
 ---
 
-## Internal Architecture
+## ► Internal Architecture
 
 Inspired by the **MVC pattern**, adapted for text operations:
 
@@ -33,7 +33,7 @@ Inspired by the **MVC pattern**, adapted for text operations:
 
 ---
 
-## 🧬 Syntax Options
+## ► Syntax Options
 
 TextBuilder offers multiple usage styles, adapting to each developer’s preferences and needs:
 
@@ -93,9 +93,9 @@ The `StringAndPosition` structure serves two key purposes:
 
 This approach offers major advantages:
 
-- ✅ Avoids `IEnumerable` or intermediate collections, reducing heap allocation and GC pressure  
-- ✅ Enables loop execution with stable performance using stack-based `Span<char>`  
-- ✅ Facilitates chained or positional searches with precise control  
+- Avoids `IEnumerable` or intermediate collections, reducing heap allocation and GC pressure  
+- Enables loop execution with stable performance using stack-based `Span<char>`  
+- Facilitates chained or positional searches with precise control  
 
 Rather than returning just a `string` or a list, TextBuilder delivers **contextual and positional information** — essential for systems requiring precision and efficiency.
 
@@ -116,7 +116,7 @@ These parameters control the behavior of TextBuilder’s search and manipulation
 
 ---
 
-## 🔍 Advanced Pattern Matching with Dynamic Characters
+## ► Advanced Pattern Matching with Dynamic Characters
 
 TextBuilder supports **special characters** that enhance search flexibility, enabling recognition of variations, incomplete patterns, and numeric structures.
 
@@ -128,7 +128,7 @@ TextBuilder supports **special characters** that enhance search flexibility, ena
 
 ---
 
-### Internal Mechanics
+### ► Internal Mechanics
 
 - `_` is interpreted as any of the following separators:  
   `' '`, `'!'`, `'?'`, `'.'`, `';'`, `':'`, `','`, `'|'`, `'('`, `')'`, `'['`, `']'`, `'{'`, `'}'`, `'\n'`, `'\t'`, `'\r'`
@@ -139,7 +139,7 @@ TextBuilder supports **special characters** that enhance search flexibility, ena
 
 ---
 
-### Practical Applications
+### ► Practical Applications
 
 - Name searches with separator variations: `"John_Doe"` → `"John Doe"`, `"John-Doe"`, `"John, Doe"`  
 - Numeric value searches: `"Total: $#"` → `"Total: $1,250.00"`  
@@ -149,7 +149,7 @@ This functionality elevates TextBuilder beyond traditional regex, offering a mor
 
 ---
 
-## Use Examples
+## ► Use Examples
 
 These examples show how TextBuilder can be adapted for different scenarios from simple searches to advanced parsing with multiple rules.
 
@@ -186,15 +186,6 @@ TextBuilder.InsertSnippetAfter(html, "<div*divUnitPopup_group", "/div>", "<input
 |---------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------|
 | `RemoveFirst(text, pattern)`    | Removes only the **first occurrence** of `pattern`                         | `RemoveFirst(text, "Marie Doe Towner ")`          |
 | `Remove(text, pattern)`         | Removes **all occurrences** of `pattern`                                   | `Remove(text, ",")`                               |
-
-### 🧹 Remoção de Trechos
-
-```csharp
-TextBuilder.RemoveSnippetFirst(html, "<div*divUnitPopup_group", "/div>");
-TextBuilder.RemoveSnippet(html, "<span", "/span>*\r\n");
-```
-
----
 
 ## 🔁 Function Table — Word Replacement
 
@@ -255,6 +246,7 @@ TextBuilder.Cont(text, "r*act", TextOpt.MatchWholeWordOnly); // 3
 | `ContainsSnippet(text, start, end)`         | Checks if there is **at least one segment** between `start` and `end`       | `ContainsSnippet(html, "<div*group", "/div>")` → `True` |
 | `ContSnippets(text, start, end)`            | Counts how many segments exist between `start` and `end`                    | `ContSnippets(html, "<span", "/span>")` → `3`     |
 
+
 ---
 
 ### 🧠 Intelligent Tag Recognition
@@ -291,7 +283,7 @@ Console.WriteLine(snippetMatch.Text);
 
 ---
 
-## 🔁 Benchmarks — Regex vs TextBuilder
+## ► Benchmarks — Regex vs TextBuilder
 
 ### Scenario: Repetitive Search in Loops
 
@@ -329,7 +321,7 @@ Console.WriteLine(snippetMatch.Text);
 
 ---
 
-## 🎯 Final Thoughts
+## ► Final Thoughts
 
 TextBuilder is not a generic replacement for Regex, it’s a **smarter**, **faster**, and **more readable** alternative for developers who need precision and control.
 
