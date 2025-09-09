@@ -70,6 +70,25 @@ StringAndPosition firstMatch = new TextMatcher(text)
 StringAndPosition firstMatch = TextBuilder.Match(text, "Marie Doe|Jane Doe|Jack|John Doe", TextOpt.MatchWholeWordOnly);
 ```
 
+### 🧠 Por que o TextBuilder retorna resultados com `StringAndPosition`
+
+Ao desenvolver o TextBuilder, optei por abrir mão de certas abstrações e automatismos que, embora facilitassem o uso superficial, comprometeriam a **liberdade, o desempenho e o controle de memória**, especialmente em tarefas simples e repetitivas.
+
+Um exemplo claro dessa escolha é a criação da estrutura `StringAndPosition`, usada como retorno dos métodos como `Match`.
+
+Essa estrutura tem dois propósitos fundamentais:
+
+- **Retornar o trecho encontrado** (`Text`) com precisão
+- **Informar a posição exata** (`Position`) da ocorrência dentro do texto original
+
+Essa abordagem oferece vantagens importantes:
+
+- ✅ **Evita o uso de `IEnumerable` ou coleções intermediárias**, que gerariam alocação no heap e pressão no garbage collector
+- ✅ **Permite execução em loop com performance estável**, aproveitando a arquitetura baseada em `Span<char>` e alocação na stack
+- ✅ **Facilita buscas encadeadas ou posicionais**, como múltiplos `Match` sequenciais ou operações condicionadas por posição
+
+Em vez de retornar apenas uma `string` ou uma lista de resultados, o TextBuilder entrega **informação contextual e posicional**, sem sacrificar desempenho — o que é essencial em sistemas que exigem precisão e eficiência.
+
 ---
 
 ## ⚙️ Parâmetros de Configuração (`TextOpt`)
