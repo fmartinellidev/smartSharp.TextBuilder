@@ -70,7 +70,7 @@ StringAndPosition firstMatch = new TextMatcher(text)
 StringAndPosition firstMatch = TextBuilder.Match(text, "Marie Doe|Jane Doe|Jack|John Doe", TextOpt.MatchWholeWordOnly);
 ```
 
-### 🧠 Por que o TextBuilder retorna resultados com `StringAndPosition`
+### Por que o TextBuilder retorna resultados com `StringAndPosition`?
 
 Ao desenvolver o TextBuilder, optei por abrir mão de certas abstrações e automatismos que, embora facilitassem o uso superficial, comprometeriam a **liberdade, o desempenho e o controle de memória**, especialmente em tarefas simples e repetitivas.
 
