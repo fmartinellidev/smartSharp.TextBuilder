@@ -1,7 +1,5 @@
-﻿using BenchmarkDotNet.Toolchains.Roslyn;
-using SmartSharp.TextBuilder;
+﻿using SmartSharp.TextBuilder;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 
 namespace TextBuilder_Tester
 {
