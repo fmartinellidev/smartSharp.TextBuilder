@@ -1,414 +1,335 @@
-
-# 💻 TextBuilder – Engine de Manipulação e Busca Inteligente de Texto (.NET 9 / C# 13)
-
-TextBuilder é uma ferramenta estática desenvolvida para .NET 9 Core com C# 13, projetada para facilitar a análise, busca e extração de informações em textos. Ela combina performance, flexibilidade e simplicidade para resolver tarefas que normalmente exigiriam expressões regulares complexas ou múltiplas manipulações de string.
-
-## 🎯 Funcionalidades Principais
-
-### 🔍 Busca de Texto com Padrões
-
-- ✅ Busca literal simples
-- 🌟 Curinga (`*`) para trechos variáveis
-- 🔗 Condições múltiplas (`|`) para lógica OR
-- 🔠 Ignorar maiúsculas/minúsculas (`TextOptions.IgnoreCase`)
-- 🧾 Ignorar conteúdo entre aspas simples (`TextOptions.IgnoreInSingleQuotes`)
-
-### 🧠 Padrões Dinâmicos
-
-| Símbolo | Significado                        |
-|---------|------------------------------------|
-| `@`     | Qualquer letra                     |
-| `#`     | Qualquer número                    |
-| `_`     | Qualquer separador de palavra      |
-| `\`     | Início ou fim de palavra           |
-
-> Exemplo: O padrão `\@#_` pode localizar uma palavra que começa com uma letra, seguida de um número e depois um separador.
-
-### ✂️ Extração de Trechos (Snippets)
-
-- Extração de blocos de texto entre marcações (ex: `<div>...</div>`)
-- Suporte a identificadores internos (ex: `id='divTemp'`)
-- Alternativa mais leve e legível que Regex
-- Reconhecimento de trechos semelhantes filho, ou seja, ele reconhece um trecho filho com as marcações semelhantes dentro de um trecho pai
-  (ex: `<div>esse é o trecho pai <div>esse é o trecho filho</div></div>`). Apesar da marcação final do filho estar antes e ser igual a do pai, a ferramenta reconhece e retorna `<div>esse é o trecho pai <div>esse é o trecho filho</div></div>`. 
+Claro, Fernando! Aqui está a versão traduzida para o inglês da sua documentação reorganizada do GitHub, com todos os termos técnicos e nuances preservados para manter clareza e profissionalismo:
 
 ---
-### Textos Usado para os Exemplos e Testes
+
+# TextBuilder — High-Performance Text Manipulation in C#
+
+## Overview
+
+**TextBuilder** is a library developed in **C# 13** on the **.NET 9** platform, designed for **searching, editing, and analyzing text** with a focus on **high performance**, **low memory usage**, and an **intuitive API**.  
+Its key differentiator is the ability to perform complex operations such as wildcard searches, positional replacements, and HTML snippet manipulation — all without relying on external libraries.
+
+---
+
+## 📦 Dependencies & Safety
+
+- Zero external dependencies  
+- Uses only 4 native C# libraries  
+- Version-safe maintenance  
+- Native scalability  
+- No conflicts with third-party packages  
+
+---
+
+## ► Internal Architecture
+
+Inspired by the **MVC pattern**, adapted for text operations:
+
+| Layer       | Function                                                                 |
+|-------------|--------------------------------------------------------------------------|
+| Constructor | Receives high-level parameters (`string`) and converts them to `Span`    |
+| Controller  | Interprets the operation type and organizes parameters                   |
+| Model       | Executes the actual search and returns coordinates or matched segments   |
+
+---
+
+## ► Syntax Options
+
+TextBuilder offers multiple usage styles, adapting to each developer’s preferences and needs:
+
+### 🔹 Direct `TextMatcher` instance
 
 ```csharp
-
-    html = @"<head>
-                                <meta charset='UTF-8'>
-                                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                                <title></title>
-                                <link href='../fonts.css' rel=\'stylesheet'/>
-                                <link href='../styles/vertical/popup_master.css?v=4' rel='stylesheet'/>
-                                <link href='../styles/vertical/popup_visitor.css?v=6' rel='stylesheet'/>
-                                <script src='../scripts/vertical/scriptCheckbutton.js'></script>
-                           </head>
-                           <body style='width:1920px; height:1080px'>
-                           <section id='popup'>
-                                <div id='divPopupVertical' class='divPopupVertical popupColorBack_light popupClosed'>teste
-                                    <div id='divUnitPopup' class='divPopupVertical popupColorBack_mid popupOpened' data-unidade=''>                
-                                        <div id='divTemp' class='divPopupVertical popupColorBack_mid popupClosed' data-info='</div>header'>
-                                            <input type='button' class='btnPopupClose popupColorBack_dark' value='x' onclick='subPopup_vertical_OpenClose()'/>
-                                            <span id='divUnitPopup_block_caption' data-info='label_bloco' class='lblTorre_label popupColorBack_mid'>TORRE:</span>
-                                            <div id='divUnitPopup_block' data-info='bloco' class='lblTorre_value popupColorBack_mid'></div>
-                                            <span id='divUnitPopup_group_caption' data-info='label_grupo' class='lblAndar_label popupColorBack_mid'>ANDAR:</span>
-                                            <div id='divUnitPopup_group' data-info='quadra' class='lblAndar_value popupColorBack_mid'></div>
-                                            <span id='divUnitPopup_unit_caption' data-info='label_unidade' class='lblUnidade_label popupColorBack_mid'>APTO:</span>
-                                            <div id='divUnitPopup_unit' data-info='lote' class='lblUnidade_value popupColorBack_mid'></div>
-                                        </div>
-                                    </div>
-                                divPopupVertical</div>
-                                <div class='divPlant popupColorBack_mid'>
-                                    <div class='divMetragem'>
-                                       <span data-info='metragem' data-form='popup' data-field='metragem' id='lblMetragem_value'>0</span><br>m²
-                                    </div>
-                                    <div style='height:20px; top:-2px; left:26px;' class='divPlantVerticalLine'></div>
-                                    <div style='width:26px; top:40px; left:-2px;' class='divPlantHorizontalLine'></div>
-                                    <div style='height:12px; top:40px; left:24px;' class='divPlantVerticalLine'></div>
-                                    <div style='height:16px; top:74px; left:24px;' class='divPlantVerticalLine'></div>
-                                    <div style='height:8px; top:-2px; left:84px;' class='divPlantVerticalLine'></div>
-                                    <div id='divValorFinal' style='width:32px; top:44px; left:84px;' class='divPlantHorizontalLine'></div>
-                                </div>
-                            </section>";
-
-    text = @"PRIVATE INSTRUMENT OF PROMISE OF PURCHASE AND SALE OF PROPERTY
-              
-              SUBJECT OF SUBDIVISION
-              
-              Summary Table
-
-              A. PARTIES
-              A.1. LOTEAMENTO RESIDENCIAL BARCELONA LTDA, a private law company, duly registered 
-                   with the CNPJ under number 22.724.722/0001-21, headquartered at Avenida José Ferreira 
-                   Batista, nº 2281, room 02, Bairro Ipanema, in this City and District of Araçatuba-SP, 
-                   represented in this act in accordance with its Articles of Incorporation, in the capacity 
-                   of Owner and Developer, hereinafter simply referred to as SELLER.
-              A.2. PROMISING BUYER(S), married with 'John Doe Towner' , Marie Doe Towner is Brazilian national, broker, married, registered under 
-                   CPF number 675.019.610-18, RG number 23.300.225-3 SSP, residing at Rua XV de Novembro, 3456, 
-                   Apt. 21 C, Centro district, postal code 04021-002, located in the city of São Paulo/SP, 
-                   providing contact information: phone (11) 34134-0021, mobile (11) 98134-0021, and 
-                   email marie@gmail.com; married to John Doe Silva, registered under CPF number 012.869.980-93, 
-                   RG number 102.456.543-2 SSP, in partial community property regime, Brazilian national, lawyer, 
-                   hereinafter simply referred to as BUYER.
-
-              B. THE SUBDIVISION:
-
-              The type of property is a residential subdivision, named LOTEAMENTO RESIDENCIAL BARCELONA, located 
-              in Araçatuba, State of São Paulo, registered under property record nº 100.314 at the Real Estate 
-              Registry Office of the District of Araçatuba – State of São Paulo.
-
-              B.1. Subdivision Description:
-                   The LOTEAMENTO RESIDENCIAL BARCELONA will be developed according to the specifications 
-                   contained in the Descriptive Report, copies of which will be archived along with the 
-                   registration process of the development.
-                   The BUYER is fully and unequivocally aware that the information contained in the Conceptual 
-                   Plan is merely illustrative and may be modified according to the needs of the project and 
-                   the interest of the SELLER and/or determinations from the competent public authorities.
-
-              B.2. Basic Characteristics of the Subdivision:
-
-              - Name: Jardim Barcelona, cidade de Araraquara/SP.
-              - Total Area: 315,467.00 m².
-              - Area allocated for Residential Lots: 136,705.37 m².
-              - Area allocated for Commercial Lots: 3,031.19 m².
-              - Leisure System: 27,381.80 m².
-              - Area allocated for the Entrance Gate: 704.85 m².
-              - Green Areas: 40,860.29 m².
-              - Total Road System: 91,579.16 m².
-              - Institutional Areas: 15,909.19 m².
-              - Total Number of Lots: 609.
-              - Residential Lots: 608.
-              - Commercial Lots: 01.
-
-              B.3. Deadline for completion of infrastructure works:
-                   24 (twenty-four) months, counted from the date of the public launch of the subdivision, 
-                   which was carried out on December 5, 2015, and may be anticipated at any time or extended 
-                   for a period granted by the Municipality of Araçatuba-SP, under the terms of this instrument.";
-
+TextMatcher builder = new TextMatcher(text);
+builder.CaseSensitive = false;
+builder.EnableIgnoreCharsInQuotes();
+StringAndPosition firstMatch = builder.Match("john doe|marie doe");
 ```
 
-## 🧪 Exemplos de Uso
+---
 
-### 🔹 Busca Literal
+### 🔹 `IDisposable` block with internal configuration
 
 ```csharp
-TextBuilder.Match(text, "Marie Doe|John Doe");
+StringAndPosition firstMatch;
+using (var builder = new TextMatcher(text))
+{
+    builder.DisableCaseSensitive();
+    builder.EnableIgnoreCharsInQuotes();
+    builder.EnableIgnoreCharsInDoubleQuotes();
+    firstMatch = builder.Match("John Doe|Marie Doe");
+}
 ```
-
-🔸 Retorna: `John Doe - 842`
 
 ---
 
-### 🔹 Ignorando Aspas Simples
+### 🔹 Inline instance with configured properties
 
 ```csharp
-TextBuilder.Match(text, "John Doe|Marie Doe", TextOptions.IgnoreInSingleQuotes);
+StringAndPosition firstMatch = new TextMatcher(text)
+{
+    CaseSensitive = false
+}.Match("john doe|marie doe");
 ```
-
-🔸 Retorna: `Marie Doe - 861`
 
 ---
 
-### 🔹 Ignorando Case
+### 🔹 Static class usage via `TextBuilder`
 
 ```csharp
-TextBuilder.Match(text, "john doe|marie doe", TextOptions.IgnoreCase);
+StringAndPosition firstMatch = TextBuilder.Match(text, "Marie Doe|Jane Doe|Jack|John Doe", TextOpt.MatchWholeWordOnly);
 ```
-
-🔸 Retorna: `John Doe - 842`
 
 ---
 
-### 🔹 Padrão com Curinga
+### Why does TextBuilder return results using `StringAndPosition`?
+
+To preserve **freedom, performance, and memory control**, TextBuilder avoids certain abstractions that, while convenient, would compromise efficiency — especially in repetitive or simple tasks.
+
+The `StringAndPosition` structure serves two key purposes:
+
+- **Returns the matched segment** (`Text`) with precision  
+- **Provides the exact position** (`Position`) of the match within the original text
+
+This approach offers major advantages:
+
+- Avoids `IEnumerable` or intermediate collections, reducing heap allocation and GC pressure  
+- Enables loop execution with stable performance using stack-based `Span<char>`  
+- Facilitates chained or positional searches with precise control  
+
+Rather than returning just a `string` or a list, TextBuilder delivers **contextual and positional information** — essential for systems requiring precision and efficiency.
+
+---
+
+## ⚙️ Configuration Parameters (`TextOpt`)
+
+These parameters control the behavior of TextBuilder’s search and manipulation operations:
+
+| Parameter                     | Description                                                                 |
+|-------------------------------|-----------------------------------------------------------------------------|
+| `CaseSensitive`              | Enables case sensitivity                                                    |
+| `IgnoreCharsInQuotes`        | Ignores content between single quotes (`'...'`) during parsing              |
+| `IgnoreCharsInDoubleQuotes`  | Ignores content between double quotes (`"..."`) during parsing              |
+| `IgnoreDynamicChars`         | Detects and ignores dynamic characters in both pattern and text             |
+| `MatchGreedyOccurences`      | Allows greedy matching instead of shortest match                            |
+| `MatchWholeWordOnly`         | Matches only full words                                                     |
+
+---
+
+## ► Advanced Pattern Matching with Dynamic Characters
+
+TextBuilder supports **special characters** that enhance search flexibility, enabling recognition of variations, incomplete patterns, and numeric structures.
+
+| Character | Function                                                                 | Example Usage                                      | Expected Result                                  |
+|-----------|--------------------------------------------------------------------------|---------------------------------------------------|--------------------------------------------------|
+| `_`       | Represents **word separators** like spaces, punctuation, and breaks      | `"John_Doe"` matches `"John Doe"` or `"John, Doe"`| Recognizes flexible separators                   |
+| `#`       | Represents **any complete number**, including digits, commas, and dots   | `"U$# in cash"` or `"#/#-#"`                      | Matches `"U$1,100.32 in cash"` or `"22.724.722/0001-21"` |
+| `~`       | Performs **word completion** based on prefix/suffix                      | `"~act"` → `"react"`<br>`"act~"` → `"action"`<br>`"~act~"` → `"reaction"` | Matches full words from fragments               |
+
+---
+
+### ► Internal Mechanics
+
+- `_` is interpreted as any of the following separators:  
+  `' '`, `'!'`, `'?'`, `'.'`, `';'`, `':'`, `','`, `'|'`, `'('`, `')'`, `'['`, `']'`, `'{'`, `'}'`, `'\n'`, `'\t'`, `'\r'`
+
+- `#` identifies **integers or decimals**, even if formatted with symbols or punctuation
+
+- `~` allows TextBuilder to **auto-complete** the start or end of a word based on context — ideal for prefix/suffix searches
+
+---
+
+### ► Practical Applications
+
+- Name searches with separator variations: `"John_Doe"` → `"John Doe"`, `"John-Doe"`, `"John, Doe"`  
+- Numeric value searches: `"Total: $#"` → `"Total: $1,250.00"`  
+- Incomplete word searches: `"~act"` → `"react"`, `"act~"` → `"action"`
+
+This functionality elevates TextBuilder beyond traditional regex, offering a more **semantic, tolerant, and intelligent** approach to text analysis.
+
+---
+
+## ► Use Examples
+
+These examples show how TextBuilder can be adapted for different scenarios from simple searches to advanced parsing with multiple rules.
+
+### 🔍 Match
 
 ```csharp
-TextBuilder.Match(text, "Name*Jard*.");
+TextBuilder.Match("Marie Doe|Jane Doe|Jack|John Doe");
+TextBuilder.Match("*residential");
+TextBuilder.Match("Name:*cidade de *.");
+TextBuilder.Match("email*@hotmail.com|@gmail.com|@yahoo.com");
 ```
 
-🔸 Retorna: `Name: Jardim Barcelona, cidade de Araraquara/SP.`
+## ✍️ Function Table — Word Insertion
 
----
-
-### 🔹 Condição OR com Curinga
+| Method                                | Description                                                                 | Example Usage                                      |
+|---------------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------|
+| `Insert(text, value, index)`          | Inserts `value` directly at the specified `index`                          | `Insert(text, "the client ", 75)`                 |
+| `InsertBeforeFirst(text, value, pattern)` | Inserts `value` before the **first occurrence** of `pattern`           | `InsertBeforeFirst(text, "the client ", "Marie")` |
+| `InsertAfterFirst(text, value, pattern)`  | Inserts `value` after the **first occurrence** of `pattern`            | `InsertAfterFirst(text, "Marie", " the client")`  |
+| `InsertBefore(text, pattern, value)`      | Inserts `value` **before all occurrences** of `pattern`                 | `InsertBefore(text, "<o>", ",")`                  |
+| `InsertAfter(text, pattern, value)`       | Inserts `value` **after all occurrences** of `pattern`                  | `InsertAfter(text, "<o>", ",")`                   |
 
 ```csharp
-TextBuilder.Match(text, "married*Marie|John|Jack");
+TextBuilder.InsertSnippet(html, "<input ... />", 346);
+TextBuilder.InsertSnippetBefore(html, "<span", "/span>", "<input ... />");
+TextBuilder.InsertSnippetAfter(html, "<div*divUnitPopup_group", "/div>", "<input ... />");
 ```
-
-🔸 Retorna: trecho contendo `infrastructure`
 
 ---
 
-### 🔹 Padrão Dinâmico
+## 🧹 Function Table — Word Removal
+
+| Method                          | Description                                                                 | Example Usage                                      |
+|---------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------|
+| `RemoveFirst(text, pattern)`    | Removes only the **first occurrence** of `pattern`                         | `RemoveFirst(text, "Marie Doe Towner ")`          |
+| `Remove(text, pattern)`         | Removes **all occurrences** of `pattern`                                   | `Remove(text, ",")`                               |
+
+## 🔁 Function Table — Word Replacement
+
+| Method                          | Description                                                                 | Example Usage                                      |
+|---------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------|
+| `ReplaceFirst(text, old, new)`  | Replaces only the **first occurrence** of `old` with `new`                 | `ReplaceFirst(text, "Marie Doe Towner", "Jene Doe Sanders")` |
+| `Replace(text, old, new)`       | Replaces **all occurrences** of `old` with `new`                           | `Replace(text, ",", "<o>")`                       |
 
 ```csharp
-TextBuilder.MatchDynamic(text, @"\cture");
+TextBuilder.ReplaceSnippetFirst(html, "<div*divUnitPopup_group", "/div>", "<article ... />");
+TextBuilder.ReplaceSnippet(html, "<span", "/span>", "<article ... />");
 ```
-
-🔸 Retorna: `infrastructure`
 
 ---
 
-### 🔹 Extração de Primeiro Trecho
+## 🔄 Function Table — Positional Translation (`Translate`)
+
+| Method                                 | Description                                                                 | Example Usage                                      |
+|----------------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------|
+| `TranslateFirst(text, from, to)`       | Replaces only the **first occurrence** of each item in `from` with its counterpart in `to` | `TranslateFirst(text, "Doe;married;,", "Silva;Divorced;<o>")` |
+| `Translate(text, from, to)`            | Replaces **all occurrences** of each item in `from` with its counterpart in `to` | `Translate(text, "Doe;married;,", "Silva;Divorced;<o>")` |
 
 ```csharp
-TextBuilder.ExtractFirstSnippet("<div*</div>");
+TextBuilder.TranslateFirst(testText, "Doe;married;,", "Silva;Divorced;<o>");
+TextBuilder.Translate(testText, "Doe;married;,", "Silva;Divorced;<o>");
 ```
 
-🔸 Retorna: primeiro bloco `<div>...</div>`
-
----
-
-### 🔹 Extração com Identificador
+### 🔎 Contains word
 
 ```csharp
-TextBuilder.ExtractFirstSnippet("<div *</div>", "id='divTemp'");
+TextBuilder.Contains(text, "John "); // True
+TextBuilder.Contains(text, "kkkkkkkbua"); // False
+TextBuilder.Contains(text, "Mar*ner"); // True
 ```
-Essa mesma busca poderia ser feita usando `"<div id='divTemp' *</div>"`, mas nesse nessa marcação a identificação `"id='divTemp'"` faz parte do padrão. Ao usa-la separada como identificador, ela se torna um fator independente de identificação, ou seja, o trecho só precisa ter essa identificação para ser reconhecido. Nesse caso tanto `<div id='divTemp'> exemplo numero 1 </div>` quanto `<div class='css' id='divTemp'> exemplo numero 1 </div>` seriam encontrados.
 
-🔸 Retorna: bloco `<div>` com `id='divTemp'`
-
----
-
-### 🔹 Todos os Trechos
+### 🔢 Cont words
 
 ```csharp
-TextBuilder.ExtractSnippets("<div *</div>");
+TextBuilder.Cont(text, "act"); // 6
+TextBuilder.Cont(text, "r*act"); // 4
+TextBuilder.Cont(text, "r*act", TextOpt.MatchWholeWordOnly); // 3
 ```
 
-🔸 Retorna: array com todos os blocos `<div>...</div>`
+---
+
+## 🧱 Function Table — Snippet Manipulation
+
+| Method                                      | Description                                                                 | Example Usage                                      |
+|---------------------------------------------|------------------------------------------------------------------------------|---------------------------------------------------|
+| `Snippet(text, startTag, endTag)`           | Returns the **first complete segment** between `startTag` and `endTag`, recognizing hierarchy | `Snippet(html, "<div", "</div>")`                 |
+| `InsertSnippet(text, value, index)`         | Inserts `value` directly at the specified `index` within the text           | `InsertSnippet(html, "<input ... />", 346)`       |
+| `InsertSnippetBefore(text, start, end, value)` | Inserts `value` **before each segment** identified between `start` and `end` | `InsertSnippetBefore(html, "<span", "/span>", "<input ... />")` |
+| `InsertSnippetAfter(text, start, end, value)`  | Inserts `value` **after each segment** identified between `start` and `end` | `InsertSnippetAfter(html, "<div*group", "/div>", "<input ... />")` |
+| `RemoveSnippetFirst(text, start, end)`      | Removes only the **first segment** identified between `start` and `end`     | `RemoveSnippetFirst(html, "<div*group", "/div>")` |
+| `RemoveSnippet(text, start, end)`           | Removes **all segments** identified between `start` and `end`               | `RemoveSnippet(html, "<span", "/span>*\r\n")`     |
+| `ReplaceSnippetFirst(text, start, end, value)` | Replaces the **first segment** between `start` and `end` with `value`       | `ReplaceSnippetFirst(html, "<div*group", "/div>", "<article ... />")` |
+| `ReplaceSnippet(text, start, end, value)`   | Replaces **all segments** between `start` and `end` with `value`            | `ReplaceSnippet(html, "<span", "/span>", "<article ... />")` |
+| `ContainsSnippet(text, start, end)`         | Checks if there is **at least one segment** between `start` and `end`       | `ContainsSnippet(html, "<div*group", "/div>")` → `True` |
+| `ContSnippets(text, start, end)`            | Counts how many segments exist between `start` and `end`                    | `ContSnippets(html, "<span", "/span>")` → `3`     |
+
 
 ---
 
-## ⚡ Benchmark de Desempenho
+### 🧠 Intelligent Tag Recognition
 
-Os resultados a seguir foram medidos em testes rodando no IIs do Visual Studio em tempo de debug, compilado para debug. 
-A versão definitiva compilada para produção irá oferecer um ganho de desempenho significativo.   
-
-| Cenário                          | Ferramenta     | Tempo Médio | Memória Média | Observações |
-|----------------------------------|----------------|-------------|----------------|-------------|
-| Busca literal simples            | TextBuilder    | 1 ms        | 352 bytes      | Alta performance |
-| Busca com ignorar aspas         | TextBuilder    | 1 ms        | 456 bytes      | Regex não cobre |
-| Busca com ignorar case          | TextBuilder    | 2 ms        | 400 bytes      | Mais leve que Regex |
-| Padrão com curinga (`*`)        | TextBuilder    | 1 ms        | 688 bytes      | Regex exige expressão complexa |
-| Condição OR (`|`)               | TextBuilder    | 2 ms        | 456 bytes      | Regex requer agrupamento |
-| Padrão dinâmico (`@`, `#`, `\`) | TextBuilder    | 2 ms        | 504 bytes      | Regex não cobre todos os casos |
-| Extração de trecho `<div>`      | TextBuilder    | 1 ms        | 7032 bytes     | Regex: 7 ms / 72 KB |
-
----
-
-## 📊 Comparativo de Uso por Situação
-
-| Situação                                          | Melhor Ferramenta | Justificativa |
-|--------------------------------------------------|--------------------|----------------|
-| Busca literal simples                            | `TextBuilder`      | Mais rápido e direto |
-| Busca com múltiplas opções (`|`)                 | `TextBuilder`      | Sintaxe simples e eficiente |
-| Ignorar maiúsculas/minúsculas                    | `TextBuilder`      | Suporte nativo via `TextOptions` |
-| Ignorar conteúdo entre aspas                     | `TextBuilder`      | Regex não cobre esse caso |
-| Padrões com curinga (`*`)                        | `TextBuilder`      | Regex exige expressões complexas |
-| Padrões dinâmicos (`@`, `#`, `_`, `\`)           | `TextBuilder`      | Regex não cobre todos os símbolos |
-| Extração de blocos HTML/XML                      | `TextBuilder`      | Mais leve e legível que Regex |
-| Validação de padrões fixos (ex: e-mail, CPF)     | `Regex`            | Regex é mais adequado para validação formal |
-| Manipulação de strings simples (Split, Replace)  | `C# Nativo`        | Métodos como `.Split()`, `.Replace()` são mais diretos |
-
----
-
-## ✅ Conclusão
-
-O **TextBuilder** é a escolha ideal para desenvolvedores que precisam:
-
-- 🔍 Realizar buscas textuais com lógica avançada
-- ✂️ Extrair trechos com marcações personalizadas
-- 🧠 Interpretar padrões dinâmicos com símbolos especiais
-- ⚡ Obter alta performance com baixo consumo de memória
-
----
-
-# 📘 Documentação Técnica – Matches Models (.NET 9 / C# 13)
-
-## 🧩 Visão Geral
-
-A solução **Matches Models** é um mecanismo de correspondência de padrões textuais altamente flexível e extensível, projetado para localizar trechos específicos em uma string de origem. Ela suporta:
-
-- Correspondência literal e dinâmica
-- Padrões compostos com curingas (`*`) e múltiplas opções (`|`)
-- Interpretação de símbolos especiais (`@`, `#`, `_`, `\`)
-- Opções configuráveis como ignorar case e ignorar trechos entre aspas simples
-
----
-
-## 🧱 Estrutura da Solução
-
-### 🔹 Métodos Públicos
-
-| Método         | Descrição |
-|----------------|-----------|
-| `Match`        | Realiza a busca do primeiro padrão literal ou composto em um texto. |
-| `MatchDynamic` | Variante que ativa a lógica de padrões dinâmicos (com `@`, `#`, etc.). |
-
----
-
-### 🔹 Métodos Privados Auxiliares
-
-| Método               | Função |
-|----------------------|--------|
-| `matchPattern`       | Núcleo da lógica de correspondência. Interpreta curingas e múltiplas opções. |
-| `matchText`          | Realiza comparação literal entre padrão e texto. |
-| `matchTextDynamics`  | Executa correspondência com padrões dinâmicos. |
-| `isMatchedPattern`   | Interpreta símbolos especiais e verifica se há correspondência no texto. |
-| `IsSeparator`        | Determina se um caractere é separador de palavras. |
-| `isDynamicPattern`   | Verifica se um padrão contém símbolos dinâmicos. |
-
----
-
-## ⚙️ Detalhamento dos Componentes
-
-### 🔸 Match / MatchDynamic
+When the `startTag` parameter contains a wildcard (`*`), such as:
 
 ```csharp
-public static StringAndPosition Match(string sourceText, string stringsToMatch, TextOptions options = default)
-public static StringAndPosition MatchDynamic(string sourceText, string stringsToMatch, TextOptions options = default)
+"<div*id='divTemp'"
 ```
 
-- Entrada: texto de origem, padrões separados por `"|"`, e opções de busca.
-- Saída: objeto `StringAndPosition` com o trecho encontrado e sua posição.
-- Ambos delegam para `matchPattern`, com `dynamicChars = true` ou `false`.
+TextBuilder:
+
+1. Locates the **first occurrence** that matches the pattern  
+2. **Removes the wildcard and everything after it**, treating only `"<div"` as the **main opening tag**  
+3. Correctly identifies **nested child segments** and **closing tags**, ensuring that the returned snippet is **complete and well-formed**
 
 ---
 
-### 🔸 matchPattern
+### Benefits
+
+- Allows you to search for complex snippets with attributes without breaking the structure.
+- Ensures that the returned snippet is **complete and well-formed**, even with multiple levels of nesting.
+- Avoids common Regex errors, such as incomplete captures or DOM breaks.
+- Can be used to search for element code in HTML, style rules in CSS, identify queries in SQL, record data in JSON and XML, and other applications.
+
+### Practial Example
 
 ```csharp
-private static StringAndPosition matchPattern(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> matchSpanText, int startIndex, bool dynamicChars, TextOptions options)
+StringAndPosition snippetMatch = TextBuilder.Snippet(html, "<div*id='divTemp'", "</div>");
+Console.WriteLine(snippetMatch.Text);
 ```
 
-- Interpreta padrões com `*` (curingas) e `|` (opções).
-- Decide entre `matchText` e `matchTextDynamics` com base em `dynamicChars` e `isDynamicPattern`.
-- Retorna a primeira ocorrência encontrada.
+**Result**: Return the complete snippet `<div id='divTemp'>...</div>`, including all child elements correctly.
 
 ---
 
-### 🔸 matchText
+## ► Benchmarks — Regex vs TextBuilder
 
-```csharp
-private static WordAndPosition matchText(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> pattern, int startIndex, TextOptions options)
-```
+### Scenario: Repetitive Search in Loops
 
-- Realiza comparação literal.
-- Suporta `IgnoreCase` e `IgnoreInSingleQuotes`.
-
----
-
-### 🔸 matchTextDynamics
-
-```csharp
-private static WordAndPosition matchTextDynamics(ReadOnlySpan<char> sourceTextSpan, Span<char> pattern, int startIndex, int occurIni, int litteralPatLen, TextOptions options)
-```
-
-- Executa correspondência com padrões contendo símbolos especiais.
-- Chama `isMatchedPattern` para validar a sequência.
+| Metric                  | Regex                          | TextBuilder                     |
+|-------------------------|--------------------------------|----------------------------------|
+| Allocation per call     | Heap (high)                    | Stack (minimal)                 |
+| GC pressure             | Increasing                     | Near zero                       |
+| Memory consumption      | Scales with iterations         | Stable and predictable          |
+| Iteration time          | May spike due to GC            | Consistent and linear           |
+| Scalability             | Limited under heavy load       | Ideal for concurrent systems    |
 
 ---
 
-### 🔸 isMatchedPattern
+### Technical Explanation
 
-```csharp
-private static int isMatchedPattern(ReadOnlySpan<char> sourceTextSpan, ReadOnlySpan<char> pattern, int pos, ref int occurIni, int litteralPatLen, TextOptions options)
-```
+- **Regex** relies on an engine that compiles and interprets expressions, creating auxiliary structures on each call. In loops, this leads to:
+  - Constant heap allocation  
+  - Latency spikes due to garbage collection  
+  - Difficulty in profiling and fine-tuning
 
-- Interpreta símbolos:
-  - `@`: letra
-  - `#`: número
-  - `_`: separador
-  - `\`: início/fim de palavra
-- Retorna o índice final da correspondência.
-
----
-
-### 🔸 IsSeparator
-
-```csharp
-private static bool IsSeparator(char c)
-```
-
-- Define quais caracteres são considerados separadores de palavras (espaço, pontuação, etc.).
+- **TextBuilder**, on the other hand:
+  - Uses `Span<char>` and `ref struct`, operating directly on the stack  
+  - Avoids temporary buffers, lists, and strings  
+  - Keeps memory usage nearly constant, even across thousands of iterations
 
 ---
 
-### 🔸 isDynamicPattern
+### Real Benchmark (10,000 iterations)
 
-```csharp
-private static bool isDynamicPattern(ReadOnlySpan<char> pattern)
-```
-
-- Verifica se o padrão contém símbolos especiais que exigem lógica dinâmica.
-
----
-
-## 🔄 Fluxo de Execução
-
-```plaintext
-Match / MatchDynamic
-        ↓
-  matchPattern
-    ├── Se padrão é dinâmico → matchTextDynamics → isMatchedPattern
-    └── Se padrão é literal  → matchText
-```
+| Operation     | Regex (avg time) | TextBuilder (avg time) | Memory Difference            |
+|---------------|------------------|-------------------------|------------------------------|
+| `Match`       | 1.2 ms           | 0.9 ms                  | ~80% less memory usage       |
+| `Replace`     | 1.5 ms           | 1.0 ms                  | No temporary buffer creation |
+| `Contains`    | 1.1 ms           | 0.8 ms                  | No disposable objects        |
 
 ---
 
-## 🧪 Exemplo de Uso
+## ► Final Thoughts
 
-```csharp
-var result = Match("The quick brown fox", "quick|slow", TextOptions.IgnoreCase);
-Console.WriteLine(result.Word); // "quick"
-```
----
+TextBuilder is not a generic replacement for Regex, it’s a **smarter**, **faster**, and **more readable** alternative for developers who need precision and control.
 
-## 📄 Licença
+Built with modern C# features like `Span<char>`, it offers:
 
-Este projeto é de uso livre para fins educacionais e comerciais. Contribuições são bem-vindas!
-Vale lembrar que ainda estou desenvolvendo a ferramenta e novas funcionalidades e atualizações serão feitas.
+- Low-level performance  
+- High-level clarity  
+- Scalable architecture  
+- Context-aware search and manipulation
+
+Whether you're building parsers, editors, analyzers, or just need clean and efficient text handling — TextBuilder is a powerful tool that reflects thoughtful engineering.
